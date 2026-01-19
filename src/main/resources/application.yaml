@@ -1,0 +1,51 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: auth-user-service
+
+  # MongoDB Configuration
+  data:
+    mongodb:
+      uri: mongodb+srv://educonnect:educonnect123@educonnect.sjmtr4c.mongodb.net/?appName=educonnect
+      database: educonnect
+      auto-index-creation: true
+    redis:
+      host: localhost
+      port: 6379
+
+  # Disable Kafka and JPA auto-configuration
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+
+eureka:
+  client:
+    enabled: false
+
+# Disable Kafka
+kafka:
+  enabled: false
+
+jwt:
+  secret: your-super-secret-jwt-key-change-this-in-production-minimum-256-bits-required
+  expiration: 86400000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.tcon.auth_user_service: DEBUG
+    org.springframework.web: INFO
+    org.springframework.data.mongodb: DEBUG
+    org.apache.kafka: OFF
