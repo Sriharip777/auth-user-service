@@ -65,7 +65,6 @@ public class StudentController {
         return ResponseEntity.ok(students);
     }
 
-    // New endpoint: Search by interest
     @GetMapping("/by-interest/{interest}")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<List<StudentDto>> getStudentsByInterest(@PathVariable String interest) {
@@ -73,7 +72,6 @@ public class StudentController {
         return ResponseEntity.ok(students);
     }
 
-    // New endpoint: Get children by parent ID
     @GetMapping("/by-parent/{parentId}")
     @PreAuthorize("hasAnyRole('PARENT', 'ADMIN')")
     public ResponseEntity<List<StudentDto>> getStudentsByParentId(@PathVariable String parentId) {

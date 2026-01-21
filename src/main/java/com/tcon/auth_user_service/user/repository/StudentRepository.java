@@ -14,11 +14,12 @@ public interface StudentRepository extends MongoRepository<StudentProfile, Strin
 
     List<StudentProfile> findByGradeLevel(String gradeLevel);
 
-    // Updated method name to match new field name
+    // MUST HAVE THIS METHOD
     List<StudentProfile> findByInterestsContaining(String interest);
 
     List<StudentProfile> findBySchoolName(String schoolName);
 
+    // MUST HAVE THIS METHOD
     List<StudentProfile> findByParentId(String parentId);
 
     boolean existsByUserId(String userId);

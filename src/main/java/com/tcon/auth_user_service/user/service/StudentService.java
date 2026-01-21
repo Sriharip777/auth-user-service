@@ -80,14 +80,14 @@ public class StudentService {
                 .collect(Collectors.toList());
     }
 
-    // New method: Search students by interest
+    // ADD THIS METHOD
     public List<StudentDto> getStudentsByInterest(String interest) {
         return studentRepository.findByInterestsContaining(interest).stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
 
-    // New method: Get students by parent ID
+    // ADD THIS METHOD
     public List<StudentDto> getStudentsByParentId(String parentId) {
         return studentRepository.findByParentId(parentId).stream()
                 .map(this::toDto)
