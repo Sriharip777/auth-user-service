@@ -14,38 +14,60 @@ spring:
     redis:
       host: localhost
       port: 6379
+      timeout: 6000ms
 
-  # Disable Kafka and JPA auto-configuration
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
-      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
-      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+  # Kafka Configuration - Fixed indentation
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: auth-user-service-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
 
+  # Mail Configuration - Fixed indentation
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:your-email@gmail.com}
+    password: ${MAIL_PASSWORD:your-password}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+# Eureka Configuration - Fixed indentation (top level, not under spring)
 eureka:
   client:
-    enabled: false
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: true
 
-# Disable Kafka
-kafka:
-  enabled: false
-
+# JWT Configuration - Fixed indentation (top level, not under spring)
 jwt:
-  secret: your-super-secret-jwt-key-change-this-in-production-minimum-256-bits-required
-  expiration: 86400000
+  secret: ${JWT_SECRET:mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong}
+  expiration: 86400000  # 24 hours in milliseconds
+  refresh-expiration: 604800000  # 7 days in milliseconds
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics
-  endpoint:
-    health:
-      show-details: always
+# App Configuration - Fixed indentation (top level)
+app:
+  two-factor:
+    enabled: true
+  password-reset:
+    token-expiration: 3600000  # 1 hour in milliseconds
 
+# Logging Configuration - Fixed indentation (top level, not under spring)
 logging:
   level:
-    com.tcon.auth_user_service: DEBUG
-    org.springframework.web: INFO
-    org.springframework.data.mongodb: DEBUG
-    org.apache.kafka: OFF
+    root: INFO
+    com.tcon.authuser: DEBUG
+    org.springframework.security: DEBUG

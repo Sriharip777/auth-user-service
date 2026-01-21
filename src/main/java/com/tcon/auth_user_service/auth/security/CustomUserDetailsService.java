@@ -1,7 +1,6 @@
 package com.tcon.auth_user_service.auth.security;
 
-import com.tcon.auth_user_service.entity.User;
-import com.tcon.auth_user_service.repository.UserRepository;
+import com.tcon.auth_user_service.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -21,24 +20,19 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        log.debug("Loading user by email: {}", email);
+        com.tcon.auth_user_service.user.entity.User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> {
-                    log.error("User not found with email: {}", email);
-                    return new UsernameNotFoundException("User not found with email: " + email);
-                });
-
-        log.info("User found: {} with role: {}", user.getEmail(), user.getRole());
+        log.debug("Loading user details for: {}", email);
 
         return org.springframework.security.core.userdetails.User.builder()
                 .username(user.getEmail())
                 .password(user.getPassword())
-                .authorities(Collections.singleton(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())))
-                .accountExpired(false)
-                .accountLocked(!user.getIsActive())
-                .credentialsExpired(false)
-                .disabled(!user.getIsActive())
+                .authorities(Collections.singletonList(
+                        new SimpleGrantedAuthority("ROLE_" + user.getRole().name())))
+                .accountLocked(user.isAccountLocked())
+                .disabled(!Boolean.TRUE.equals(user.getEmailVerified()))
                 .build();
     }
 }
+
