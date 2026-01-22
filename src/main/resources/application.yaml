@@ -5,18 +5,17 @@ spring:
   application:
     name: auth-user-service
 
-  # MongoDB Configuration
   data:
     mongodb:
       uri: mongodb+srv://educonnect:educonnect123@educonnect.sjmtr4c.mongodb.net/?appName=educonnect
       database: educonnect
       auto-index-creation: true
+
     redis:
       host: localhost
       port: 6379
       timeout: 6000ms
 
-  # Kafka Configuration - Fixed indentation
   kafka:
     bootstrap-servers: localhost:9092
     producer:
@@ -29,7 +28,6 @@ spring:
       properties:
         spring.json.trusted.packages: "*"
 
-  # Mail Configuration - Fixed indentation
   mail:
     host: smtp.gmail.com
     port: 587
@@ -42,7 +40,6 @@ spring:
           starttls:
             enable: true
 
-# Eureka Configuration - Fixed indentation (top level, not under spring)
 eureka:
   client:
     service-url:
@@ -52,22 +49,39 @@ eureka:
   instance:
     prefer-ip-address: true
 
-# JWT Configuration - Fixed indentation (top level, not under spring)
+# =======================
+# JWT CONFIGURATION
+# =======================
 jwt:
   secret: ${JWT_SECRET:mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong}
-  expiration: 86400000  # 24 hours in milliseconds
-  refresh-expiration: 604800000  # 7 days in milliseconds
+  expiration: 86400000          # 24 hours (milliseconds)
+  refresh-expiration: 604800000 # 7 days (milliseconds)
 
-# App Configuration - Fixed indentation (top level)
+# =======================
+# APPLICATION CONFIG
+# =======================
 app:
   two-factor:
     enabled: true
   password-reset:
-    token-expiration: 3600000  # 1 hour in milliseconds
+    token-expiration: 3600000   # 1 hour (milliseconds)
 
-# Logging Configuration - Fixed indentation (top level, not under spring)
 logging:
   level:
     root: INFO
-    com.tcon.authuser: DEBUG
+    com.tcon.auth_user_service: DEBUG
     org.springframework.security: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+  health:
+    redis:
+      enabled: false
+    mail:
+      enabled: false

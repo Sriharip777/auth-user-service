@@ -21,9 +21,11 @@ public class JwtTokenProvider {
     @Value("${jwt.secret}")
     private String secret;
 
+    // Access token expiry in milliseconds
     @Value("${jwt.expiration}")
     private long accessTokenValidityInMs;
 
+    // Refresh token expiry in milliseconds
     @Value("${jwt.refresh-expiration}")
     private long refreshTokenValidityInMs;
 
@@ -33,6 +35,10 @@ public class JwtTokenProvider {
     public void init() {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
+
+    /* =======================
+       TOKEN GENERATION
+    ======================= */
 
     public String generateAccessToken(String userId, String email, UserRole role) {
         Date now = new Date();
@@ -44,8 +50,8 @@ public class JwtTokenProvider {
         claims.put("type", "access");
 
         return Jwts.builder()
-                .claims(claims)
                 .subject(userId)
+                .claims(claims)
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(key, Jwts.SIG.HS256)
@@ -65,6 +71,10 @@ public class JwtTokenProvider {
                 .compact();
     }
 
+    /* =======================
+       TOKEN VALIDATION
+    ======================= */
+
     public Jws<Claims> validateToken(String token) {
         try {
             return Jwts.parser()
@@ -80,6 +90,19 @@ public class JwtTokenProvider {
         }
     }
 
+    public boolean isTokenExpired(String token) {
+        try {
+            Date expiration = validateToken(token).getPayload().getExpiration();
+            return expiration.before(new Date());
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
+    /* =======================
+       CLAIM EXTRACTION
+    ======================= */
+
     public String getUserId(String token) {
         return validateToken(token).getPayload().getSubject();
     }
@@ -93,12 +116,21 @@ public class JwtTokenProvider {
         return UserRole.valueOf(role);
     }
 
-    public boolean isTokenExpired(String token) {
-        try {
-            Date expiration = validateToken(token).getPayload().getExpiration();
-            return expiration.before(new Date());
-        } catch (Exception e) {
-            return true;
-        }
+    /* =======================
+       EXPIRY (USED BY AuthService)
+    ======================= */
+
+    /**
+     * @return access token expiry in SECONDS (frontend expects seconds)
+     */
+    public long getAccessTokenExpiry() {
+        return accessTokenValidityInMs / 1000;
+    }
+
+    /**
+     * @return refresh token expiry in SECONDS
+     */
+    public long getRefreshTokenExpiry() {
+        return refreshTokenValidityInMs / 1000;
     }
 }
