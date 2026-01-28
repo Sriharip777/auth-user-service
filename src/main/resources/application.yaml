@@ -47,13 +47,14 @@ eureka:
     fetch-registry: true
     register-with-eureka: true
   instance:
-    prefer-ip-address: true
+    prefer-ip-address: false
+    hostname: localhost
 
 # =======================
 # JWT CONFIGURATION
 # =======================
 jwt:
-  secret: ${JWT_SECRET:mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong}
+  secret: educonnect-jwt-secret-key-256-bit
   expiration: 86400000          # 24 hours (milliseconds)
   refresh-expiration: 604800000 # 7 days (milliseconds)
 

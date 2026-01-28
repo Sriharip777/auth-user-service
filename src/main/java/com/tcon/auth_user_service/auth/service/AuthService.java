@@ -157,6 +157,53 @@ public class AuthService {
         return buildTokenResponse(user);
     }
 
+    /* =========================================================
+       🔐 ADMIN REGISTRATION (ONLY ADDITION)
+       ========================================================= */
+    /**
+     * Admin-only registration for ADMIN / SUPPORT / FINANCE users
+     */
+    @Transactional
+    public TokenResponse registerAdmin(RegisterRequest request) {
+
+        if (request.getRole() == null ||
+                !(request.getRole().name().equals("ADMIN")
+                        || request.getRole().name().equals("SUPPORT_STAFF")
+                        || request.getRole().name().equals("FINANCE_ADMIN"))) {
+
+            throw new IllegalArgumentException("Invalid role for admin registration");
+        }
+
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("Email already in use");
+        }
+
+        if (request.getPhoneNumber() != null &&
+                userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
+            throw new IllegalArgumentException("Phone number already in use");
+        }
+
+        User user = User.builder()
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .firstName(request.getFirstName())
+                .lastName(request.getLastName())
+                .phoneNumber(request.getPhoneNumber())
+                .role(request.getRole())
+                .status(UserStatus.ACTIVE)
+                .emailVerified(true)
+                .twoFactorEnabled(false)
+                .failedLoginAttempts(0)
+                .build();
+
+        User savedUser = userRepository.save(user);
+
+        log.info("Admin user created: {} ({})",
+                savedUser.getEmail(), savedUser.getRole());
+
+        return buildTokenResponse(savedUser);
+    }
+
     /**
      * Shared token creation logic (SINGLE SOURCE OF TRUTH)
      */
