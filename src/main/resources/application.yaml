@@ -10,68 +10,43 @@ spring:
       uri: mongodb+srv://educonnect:educonnect123@educonnect.sjmtr4c.mongodb.net/?appName=educonnect
       database: educonnect
       auto-index-creation: true
-
     redis:
       host: localhost
       port: 6379
       timeout: 6000ms
 
-  kafka:
-    bootstrap-servers: localhost:9092
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-    consumer:
-      group-id: auth-user-service-group
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      properties:
-        spring.json.trusted.packages: "*"
-
-  mail:
-    host: smtp.gmail.com
-    port: 587
-    username: ${MAIL_USERNAME:your-email@gmail.com}
-    password: ${MAIL_PASSWORD:your-password}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
 
 eureka:
   client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka/
-    fetch-registry: true
-    register-with-eureka: true
-  instance:
-    prefer-ip-address: false
-    hostname: localhost
+    enabled: false
 
-# =======================
-# JWT CONFIGURATION
-# =======================
+# Disable Kafka
+kafka:
+  enabled: false
+
 jwt:
-  secret: educonnect-jwt-secret-key-256-bit
-  expiration: 86400000          # 24 hours (milliseconds)
-  refresh-expiration: 604800000 # 7 days (milliseconds)
+  secret: my-super-secret-jwt-key-for-educonnect-platform-minimum-256-bits-required
+  expiration: 86400000
+  refresh-expiration: 604800000
 
-# =======================
-# APPLICATION CONFIG
-# =======================
+
 app:
   two-factor:
     enabled: true
   password-reset:
-    token-expiration: 3600000   # 1 hour (milliseconds)
+    token-expiration: 3600000
 
 logging:
   level:
     root: INFO
     com.tcon.auth_user_service: DEBUG
-    org.springframework.security: DEBUG
+    org.springframework.security: INFO
+    org.apache.kafka: OFF
+    com.netflix.discovery: OFF
 
 management:
   endpoints:
@@ -81,8 +56,3 @@ management:
   endpoint:
     health:
       show-details: always
-  health:
-    redis:
-      enabled: false
-    mail:
-      enabled: false

@@ -21,11 +21,9 @@ public class JwtTokenProvider {
     @Value("${jwt.secret}")
     private String secret;
 
-    // Access token expiry in milliseconds
     @Value("${jwt.expiration}")
     private long accessTokenValidityInMs;
 
-    // Refresh token expiry in milliseconds
     @Value("${jwt.refresh-expiration}")
     private long refreshTokenValidityInMs;
 
@@ -34,11 +32,8 @@ public class JwtTokenProvider {
     @PostConstruct
     public void init() {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        log.info("✅ JwtTokenProvider initialized with secret (length: {})", secret.length());
     }
-
-    /* =======================
-       TOKEN GENERATION
-    ======================= */
 
     public String generateAccessToken(String userId, String email, UserRole role) {
         Date now = new Date();
@@ -71,16 +66,15 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    /* =======================
-       TOKEN VALIDATION
-    ======================= */
-
     public Jws<Claims> validateToken(String token) {
+        // CRITICAL FIX: Clean token before validation
+        String cleanToken = cleanToken(token);
+
         try {
             return Jwts.parser()
                     .verifyWith(key)
                     .build()
-                    .parseSignedClaims(token);
+                    .parseSignedClaims(cleanToken);
         } catch (ExpiredJwtException ex) {
             log.error("JWT token expired: {}", ex.getMessage());
             throw new IllegalArgumentException("Token expired", ex);
@@ -92,45 +86,54 @@ public class JwtTokenProvider {
 
     public boolean isTokenExpired(String token) {
         try {
-            Date expiration = validateToken(token).getPayload().getExpiration();
+            String cleanToken = cleanToken(token);
+            Date expiration = validateToken(cleanToken).getPayload().getExpiration();
             return expiration.before(new Date());
         } catch (Exception e) {
+            log.error("Error checking token expiration: {}", e.getMessage());
             return true;
         }
     }
 
-    /* =======================
-       CLAIM EXTRACTION
-    ======================= */
-
     public String getUserId(String token) {
-        return validateToken(token).getPayload().getSubject();
+        String cleanToken = cleanToken(token);
+        return validateToken(cleanToken).getPayload().getSubject();
     }
 
     public String getEmail(String token) {
-        return validateToken(token).getPayload().get("email", String.class);
+        String cleanToken = cleanToken(token);
+        return validateToken(cleanToken).getPayload().get("email", String.class);
     }
 
     public UserRole getRole(String token) {
-        String role = validateToken(token).getPayload().get("role", String.class);
+        String cleanToken = cleanToken(token);
+        String role = validateToken(cleanToken).getPayload().get("role", String.class);
         return UserRole.valueOf(role);
     }
 
-    /* =======================
-       EXPIRY (USED BY AuthService)
-    ======================= */
-
-    /**
-     * @return access token expiry in SECONDS (frontend expects seconds)
-     */
     public long getAccessTokenExpiry() {
         return accessTokenValidityInMs / 1000;
     }
 
-    /**
-     * @return refresh token expiry in SECONDS
-     */
     public long getRefreshTokenExpiry() {
         return refreshTokenValidityInMs / 1000;
+    }
+
+    /**
+     * CRITICAL: Remove all whitespace from token
+     */
+    private String cleanToken(String token) {
+        if (token == null) {
+            return null;
+        }
+        // Remove all whitespace characters (spaces, tabs, newlines, etc.)
+        String cleaned = token.trim().replaceAll("\\s+", "");
+
+        if (!cleaned.equals(token)) {
+            log.warn("⚠️ Token contained whitespace! Cleaned from {} to {} chars",
+                    token.length(), cleaned.length());
+        }
+
+        return cleaned;
     }
 }
