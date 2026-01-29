@@ -1,10 +1,8 @@
 package com.tcon.auth_user_service.user.service;
 
-import com.tcon.auth_user_service.event.TeacherApprovalEventPublisher;
 import com.tcon.auth_user_service.user.dto.TeacherVerificationDto;
-import com.tcon.auth_user_service.user.entity.TeacherProfile;
 import com.tcon.auth_user_service.user.entity.TeacherVerification;
-import com.tcon.auth_user_service.user.repository.TeacherRepository;
+import com.tcon.auth_user_service.user.repository.TeacherProfileRepository;
 import com.tcon.auth_user_service.user.repository.TeacherVerificationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,26 +19,60 @@ import java.util.stream.Collectors;
 public class TeacherVerificationService {
 
     private final TeacherVerificationRepository verificationRepository;
-    private final TeacherRepository teacherRepository;
-    private final TeacherApprovalEventPublisher approvalEventPublisher;
+    private final TeacherProfileRepository teacherProfileRepository;
 
+    /**
+     * Teacher submits verification documents
+     */
     @Transactional
-    public TeacherVerificationDto submitVerification(String teacherUserId, List<String> documentUrls) {
+    public TeacherVerificationDto submitVerification(String teacherUserId, TeacherVerificationDto dto) {
+        log.info("Teacher {} submitting verification documents", teacherUserId);
+
+        // Check if verification already exists
+        if (verificationRepository.existsByTeacherUserIdAndStatus(teacherUserId, "PENDING")) {
+            throw new IllegalArgumentException("Verification request already pending");
+        }
+
         TeacherVerification verification = TeacherVerification.builder()
                 .teacherUserId(teacherUserId)
-                .documentUrls(documentUrls)
+                .documentUrls(dto.getDocumentUrls())
                 .status("PENDING")
                 .build();
 
         TeacherVerification saved = verificationRepository.save(verification);
-        log.info("Verification submitted for teacher: {}", teacherUserId);
-        return toDto(saved);
+        log.info("✅ Verification submitted with ID: {}", saved.getId());
+
+        return mapToDto(saved);
     }
 
+    /**
+     * Get all pending verifications (Admin only)
+     */
+    @Transactional(readOnly = true)
+    public List<TeacherVerificationDto> getPendingVerifications() {
+        log.info("Fetching pending teacher verifications");
+
+        List<TeacherVerification> verifications = verificationRepository.findByStatus("PENDING");
+        log.info("Found {} pending verifications", verifications.size());
+
+        return verifications.stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Approve teacher verification (Admin only)
+     */
     @Transactional
     public TeacherVerificationDto approveVerification(String verificationId, String reviewerUserId) {
+        log.info("Admin {} approving verification: {}", reviewerUserId, verificationId);
+
         TeacherVerification verification = verificationRepository.findById(verificationId)
                 .orElseThrow(() -> new IllegalArgumentException("Verification not found: " + verificationId));
+
+        if (!"PENDING".equals(verification.getStatus())) {
+            throw new IllegalStateException("Verification already processed");
+        }
 
         verification.setStatus("APPROVED");
         verification.setReviewerUserId(reviewerUserId);
@@ -48,25 +80,27 @@ public class TeacherVerificationService {
 
         TeacherVerification saved = verificationRepository.save(verification);
 
-        // Update teacher profile
-        TeacherProfile teacherProfile = teacherRepository.findByUserId(verification.getTeacherUserId())
-                .orElseThrow(() -> new IllegalArgumentException("Teacher profile not found"));
+        // Update teacher profile status
+        updateTeacherProfileStatus(verification.getTeacherUserId(), "VERIFIED");
 
-        teacherProfile.setVerificationStatus("VERIFIED");
-        teacherRepository.save(teacherProfile);
+        log.info("✅ Verification approved for teacher: {}", verification.getTeacherUserId());
 
-        log.info("Verification approved for teacher: {}", verification.getTeacherUserId());
-
-        // Publish event
-        approvalEventPublisher.publishTeacherApproved(verification.getTeacherUserId());
-
-        return toDto(saved);
+        return mapToDto(saved);
     }
 
+    /**
+     * Reject teacher verification (Admin only)
+     */
     @Transactional
     public TeacherVerificationDto rejectVerification(String verificationId, String reviewerUserId, String reason) {
+        log.info("Admin {} rejecting verification: {}", reviewerUserId, verificationId);
+
         TeacherVerification verification = verificationRepository.findById(verificationId)
                 .orElseThrow(() -> new IllegalArgumentException("Verification not found: " + verificationId));
+
+        if (!"PENDING".equals(verification.getStatus())) {
+            throw new IllegalStateException("Verification already processed");
+        }
 
         verification.setStatus("REJECTED");
         verification.setReviewerUserId(reviewerUserId);
@@ -75,31 +109,25 @@ public class TeacherVerificationService {
 
         TeacherVerification saved = verificationRepository.save(verification);
 
-        // Update teacher profile
-        TeacherProfile teacherProfile = teacherRepository.findByUserId(verification.getTeacherUserId())
-                .orElseThrow(() -> new IllegalArgumentException("Teacher profile not found"));
+        // Update teacher profile status
+        updateTeacherProfileStatus(verification.getTeacherUserId(), "REJECTED");
 
-        teacherProfile.setVerificationStatus("REJECTED");
-        teacherRepository.save(teacherProfile);
+        log.info("❌ Verification rejected for teacher: {} - Reason: {}",
+                verification.getTeacherUserId(), reason);
 
-        log.info("Verification rejected for teacher: {} - Reason: {}", verification.getTeacherUserId(), reason);
-
-        return toDto(saved);
+        return mapToDto(saved);
     }
 
-    public List<TeacherVerificationDto> getPendingVerifications() {
-        return verificationRepository.findByStatus("PENDING").stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
+    private void updateTeacherProfileStatus(String teacherUserId, String status) {
+        teacherProfileRepository.findByUserId(teacherUserId)
+                .ifPresent(profile -> {
+                    profile.setVerificationStatus(status);
+                    teacherProfileRepository.save(profile);
+                    log.info("Updated teacher profile status to: {}", status);
+                });
     }
 
-    public TeacherVerificationDto getVerificationStatus(String teacherUserId) {
-        TeacherVerification verification = verificationRepository.findByTeacherUserId(teacherUserId)
-                .orElseThrow(() -> new IllegalArgumentException("Verification not found for teacher: " + teacherUserId));
-        return toDto(verification);
-    }
-
-    private TeacherVerificationDto toDto(TeacherVerification verification) {
+    private TeacherVerificationDto mapToDto(TeacherVerification verification) {
         return TeacherVerificationDto.builder()
                 .id(verification.getId())
                 .teacherUserId(verification.getTeacherUserId())
@@ -112,4 +140,3 @@ public class TeacherVerificationService {
                 .build();
     }
 }
-

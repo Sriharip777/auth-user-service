@@ -2,7 +2,10 @@ package com.tcon.auth_user_service.user.controller;
 
 import com.tcon.auth_user_service.user.dto.TeacherDto;
 import com.tcon.auth_user_service.user.dto.TeacherSearchDto;
+import com.tcon.auth_user_service.user.dto.TeacherVerificationDto;
+import com.tcon.auth_user_service.user.repository.TeacherVerificationRepository;
 import com.tcon.auth_user_service.user.service.TeacherService;
+import com.tcon.auth_user_service.user.service.TeacherVerificationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -19,7 +22,7 @@ import java.util.List;
 public class TeacherController {
 
     private final TeacherService teacherService;
-
+private  final TeacherVerificationService submitVerification;
     @PostMapping("/profile")
     @PreAuthorize("hasRole('TEACHER')")
     public ResponseEntity<TeacherDto> createProfile(
@@ -68,4 +71,14 @@ public class TeacherController {
         List<TeacherDto> teachers = teacherService.getTopRatedTeachers();
         return ResponseEntity.ok(teachers);
     }
+
+    @PostMapping("/verification/submit")
+    @PreAuthorize("hasRole('TEACHER')")
+    public ResponseEntity<TeacherVerificationDto> submitVerification(
+            @AuthenticationPrincipal String userId,
+            @Valid @RequestBody TeacherVerificationDto dto) {
+        TeacherVerificationDto created = submitVerification.submitVerification(userId, dto);
+        return ResponseEntity.ok(created);
+    }
+
 }
