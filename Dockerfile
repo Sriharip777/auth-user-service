@@ -1,11 +1,16 @@
-# Multi-stage build for optimal image size
+# ================================
+# Builder stage
+# ================================
 FROM eclipse-temurin:17-jdk-alpine AS builder
 
 WORKDIR /app
 
-# Copy Maven wrapper and pom.xml
+# Copy Maven wrapper & pom (for dependency caching)
 COPY .mvn/ .mvn
 COPY mvnw pom.xml ./
+
+# Fix permission for mvnw
+RUN chmod +x mvnw
 
 # Download dependencies
 RUN ./mvnw dependency:go-offline
@@ -13,27 +18,30 @@ RUN ./mvnw dependency:go-offline
 # Copy source code
 COPY src ./src
 
-# Build application
-RUN ./mvnw clean package -DskipTests
+# Build JAR
+RUN ./mvnw clean package -DskipTests=true
 
+
+# ================================
 # Runtime stage
+# ================================
 FROM eclipse-temurin:17-jre-alpine
 
 WORKDIR /app
 
-# Create non-root user
+# Create non-root user (security best practice)
 RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
 
-# Copy jar from builder
+# Copy JAR from builder
 COPY --from=builder /app/target/*.jar app.jar
 
-# Expose port
+# Expose application port
 EXPOSE 8081
 
-# Health check
+# Health check (Spring Boot Actuator)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=30s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:8081/actuator/health || exit 1
 
 # Run application
-ENTRYPOINT ["java", "-jar", "-Xmx512m", "-Xms256m", "app.jar"]
+ENTRYPOINT ["java", "-Xms256m", "-Xmx512m", "-jar", "app.jar"]
