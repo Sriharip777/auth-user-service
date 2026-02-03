@@ -33,6 +33,16 @@ public class ParentController {
         return ResponseEntity.ok(profile);
     }
 
+    /**
+     * Get parent details including children
+     */
+    @GetMapping("/{parentId}")
+    public ResponseEntity<ParentDto> getParent(@PathVariable String parentId) {
+        ParentDto parent = parentService.getParentById(parentId);
+        return ResponseEntity.ok(parent);
+    }
+
+
     @PutMapping("/profile")
     @PreAuthorize("hasRole('PARENT')")
     public ResponseEntity<ParentDto> updateProfile(

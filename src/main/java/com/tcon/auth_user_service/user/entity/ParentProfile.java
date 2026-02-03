@@ -12,6 +12,7 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -27,7 +28,9 @@ public class ParentProfile {
     @Indexed(unique = true)
     private String userId;
 
-    private List<String> childUserIds;
+    @Builder.Default  // ← ADD THIS
+    private List<String> childUserIds = new ArrayList<>();  // ← ADD = new ArrayList<>()
+
     private String preferredContactTime;
     private String emergencyContact;
     private String relationship;

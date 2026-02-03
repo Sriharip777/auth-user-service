@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ParentService {
 
     private final ParentRepository parentRepository;
+    private final ParentMapper parentMapper;
 
     @Transactional
     public ParentDto createProfile(String userId, ParentDto dto) {
@@ -65,4 +66,23 @@ public class ParentService {
                 .relationship(profile.getRelationship())
                 .build();
     }
+
+    /**
+     * Get parent by ID
+     */
+    public ParentDto getParentById(String parentId) {
+        ParentProfile parent = parentRepository.findById(parentId)
+                .orElseThrow(() -> new IllegalArgumentException("Parent not found: " + parentId));
+        return parentMapper.toDto(parent);
+    }
+
+    /**
+     * Get parent by user ID
+     */
+    public ParentDto getParentByUserId(String userId) {
+        ParentProfile parent = parentRepository.findByUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Parent profile not found for user: " + userId));
+        return parentMapper.toDto(parent);
+    }
+
 }
