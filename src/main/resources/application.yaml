@@ -22,11 +22,11 @@ spring:
 
 eureka:
   client:
-    enabled: false
+    enabled: true
 
 # Disable Kafka
 kafka:
-  enabled: false
+  enabled: true
 
 jwt:
   secret: my-super-secret-jwt-key-for-educonnect-platform-minimum-256-bits-required
