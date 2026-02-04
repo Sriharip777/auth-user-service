@@ -1,0 +1,67 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: auth-user-service
+
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb+srv://educonnect:educonnect123@educonnect.sjmtr4c.mongodb.net/?appName=educonnect}
+      database: ${MONGODB_DATABASE:educonnect}
+      auto-index-creation: true
+
+    redis:
+      host: ${REDIS_HOST:localhost}  # ⚡ CHANGE 1: Add environment variable
+      port: ${REDIS_PORT:6379}       # ⚡ CHANGE 1: Add environment variable
+      timeout: 6000ms
+      lettuce:
+        pool:
+          max-active: 10
+          max-idle: 5
+          min-idle: 2
+
+  kafka:
+    enabled: true
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+
+eureka:
+  client:
+    enabled: true
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}  # ⚡ CHANGE 2: Add environment variable
+    registry-fetch-interval-seconds: 5
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+
+jwt:
+  secret: ${JWT_SECRET:my-super-secret-jwt-key-for-educonnect-platform-minimum-256-bits-required}
+  expiration: ${JWT_EXPIRATION:86400000}
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+
+app:
+  two-factor:
+    enabled: true
+  password-reset:
+    token-expiration: 3600000
+
+logging:
+  level:
+    root: INFO
+    com.tcon.auth_user_service: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
