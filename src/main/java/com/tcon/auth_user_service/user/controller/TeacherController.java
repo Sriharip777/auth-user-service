@@ -1,6 +1,7 @@
 package com.tcon.auth_user_service.user.controller;
 
 import com.tcon.auth_user_service.user.dto.TeacherDto;
+import com.tcon.auth_user_service.user.dto.TeacherProfileResponseDto;
 import com.tcon.auth_user_service.user.dto.TeacherSearchDto;
 import com.tcon.auth_user_service.user.dto.TeacherVerificationDto;
 import com.tcon.auth_user_service.user.repository.TeacherVerificationRepository;
@@ -43,6 +44,13 @@ private  final TeacherVerificationService submitVerification;
     public ResponseEntity<TeacherDto> getProfileByUserId(@PathVariable String userId) {
         TeacherDto profile = teacherService.getProfile(userId);
         return ResponseEntity.ok(profile);
+    }
+
+    // ✅ NEW ENDPOINT: Get complete teacher profile with user details
+    @GetMapping("/profile/{userId}/complete")
+    public ResponseEntity<TeacherProfileResponseDto> getCompleteProfile(@PathVariable String userId) {
+        TeacherProfileResponseDto completeProfile = teacherService.getCompleteProfile(userId);
+        return ResponseEntity.ok(completeProfile);
     }
 
     @PutMapping("/profile")

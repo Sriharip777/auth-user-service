@@ -1,7 +1,9 @@
 package com.tcon.auth_user_service.user.service;
 
 import com.tcon.auth_user_service.user.dto.TeacherDto;
+import com.tcon.auth_user_service.user.dto.TeacherProfileResponseDto;
 import com.tcon.auth_user_service.user.dto.TeacherSearchDto;
+import com.tcon.auth_user_service.user.dto.UserProfileDto;
 import com.tcon.auth_user_service.user.entity.TeacherProfile;
 import com.tcon.auth_user_service.user.repository.TeacherRepository;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,7 @@ import java.util.stream.Collectors;
 public class TeacherService {
 
     private final TeacherRepository teacherRepository;
+    private final UserSearchService userSearchService;
 
     @Transactional
     public TeacherDto createProfile(String userId, TeacherDto dto) {
@@ -133,5 +136,32 @@ public class TeacherService {
                 .isAvailable(profile.getIsAvailable())
                 .timezone(profile.getTimezone())
                 .build();
+    }
+
+    /**
+     * Get complete teacher profile with user details
+     */
+    public TeacherProfileResponseDto getCompleteProfile(String userId) {
+        log.info("📥 Fetching complete profile for teacher userId: {}", userId);
+
+        // Fetch teacher profile
+        TeacherDto teacherProfile = getProfile(userId);
+
+        // Fetch user details
+        UserProfileDto userDetails = null;
+        try {
+            userDetails = userSearchService.getUserById(userId);
+            log.info("✅ User details fetched for userId: {}", userId);
+        } catch (Exception e) {
+            log.warn("⚠️ Could not fetch user details for userId: {}. Error: {}", userId, e.getMessage());
+        }
+
+        TeacherProfileResponseDto response = TeacherProfileResponseDto.builder()
+                .teacherProfile(teacherProfile)
+                .userDetails(userDetails)
+                .build();
+
+        log.info("✅ Complete profile built. DisplayName: {}", response.getDisplayName());
+        return response;
     }
 }
