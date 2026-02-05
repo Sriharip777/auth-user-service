@@ -1,45 +1,64 @@
 server:
-  port: 8081
+  # Cloud Run provides PORT; your container must listen on it.
+  port: ${PORT:8081} # local default 8081; Cloud Run overrides via PORT env var
+  forward-headers-strategy: framework
 
 spring:
   application:
     name: auth-user-service
 
-  data:
-    mongodb:
-      uri: ${MONGODB_URI:mongodb+srv://educonnect:educonnect123@educonnect.sjmtr4c.mongodb.net/?appName=educonnect}
-      database: ${MONGODB_DATABASE:educonnect}
-      auto-index-creation: true
-
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      timeout: 6000ms
-      lettuce:
-        pool:
-          max-active: 10
-          max-idle: 5
-          min-idle: 2
-
-  kafka:
-    enabled: true
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
 
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
 
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017}
+      database: ${MONGODB_DATABASE:educonnect}
+      auto-index-creation: true
+
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: ${REDIS_TIMEOUT:6000ms}
+      lettuce:
+        pool:
+          max-active: ${REDIS_POOL_MAX_ACTIVE:10}
+          max-idle: ${REDIS_POOL_MAX_IDLE:5}
+          min-idle: ${REDIS_POOL_MIN_IDLE:2}
+
+  # Keep if you have conditional @Configuration reading this flag
+  kafka:
+    enabled: ${KAFKA_ENABLED:true}
+
+  # Optional: set these if you actually use Spring Kafka and want predictable startup
+
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:auth-user-service}
+      auto-offset-reset: ${KAFKA_AUTO_OFFSET_RESET:latest}
+
 eureka:
   client:
-    enabled: true
+    enabled: ${EUREKA_ENABLED:true}
     service-url:
       defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
-    registry-fetch-interval-seconds: 5
     register-with-eureka: true
     fetch-registry: true
+    registry-fetch-interval-seconds: 5
+
   instance:
-    prefer-ip-address: true
-    instance-id: ${spring.application.name}:${server.port}
+    # In serverless (Cloud Run), instance IP/host can be tricky; keep this configurable.
+    prefer-ip-address: ${EUREKA_PREFER_IP_ADDRESS:true}
+    instance-id: ${spring.application.name}:${server.port}:${random.value}
+    lease-renewal-interval-in-seconds: 5
+    lease-expiration-duration-in-seconds: 10
+    health-check-url-path: /actuator/health
+    status-page-url-path: /actuator/info
 
 jwt:
   secret: ${JWT_SECRET:my-super-secret-jwt-key-for-educonnect-platform-minimum-256-bits-required}
@@ -48,14 +67,9 @@ jwt:
 
 app:
   two-factor:
-    enabled: true
+    enabled: ${TWO_FACTOR_ENABLED:true}
   password-reset:
-    token-expiration: 3600000
-
-logging:
-  level:
-    root: INFO
-    com.tcon.auth_user_service: DEBUG
+    token-expiration: ${PASSWORD_RESET_TOKEN_EXPIRATION:3600000}
 
 management:
   endpoints:
@@ -65,3 +79,8 @@ management:
   endpoint:
     health:
       show-details: always
+
+logging:
+  level:
+    root: INFO
+    com.tcon.auth_user_service: DEBUG
