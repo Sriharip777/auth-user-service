@@ -12,8 +12,8 @@ spring:
       auto-index-creation: true
 
     redis:
-      host: ${REDIS_HOST:localhost}  # ⚡ CHANGE 1: Add environment variable
-      port: ${REDIS_PORT:6379}       # ⚡ CHANGE 1: Add environment variable
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
       timeout: 6000ms
       lettuce:
         pool:
@@ -33,7 +33,7 @@ eureka:
   client:
     enabled: true
     service-url:
-      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}  # ⚡ CHANGE 2: Add environment variable
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
     registry-fetch-interval-seconds: 5
     register-with-eureka: true
     fetch-registry: true
