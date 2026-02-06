@@ -15,14 +15,15 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
-      timeout: 5000ms
-      connect-timeout: 5000ms
+      timeout: 3000ms
+      connect-timeout: 2000ms
       ssl: ${REDIS_SSL:false}
       lettuce:
         pool:
-          max-active: 10
-          max-idle: 5
-          min-idle: 2
+          max-active: 8
+          max-idle: 4
+          min-idle: 1
+        shutdown-timeout: 100ms
 
   kafka:
     enabled: false
@@ -32,23 +33,37 @@ spring:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
 
+  # CRITICAL: Make Cloud Config optional to avoid blocking
+  cloud:
+    config:
+      enabled: false
+      fail-fast: false
+
 eureka:
   client:
-    enabled: true
+    enabled: ${EUREKA_ENABLED:true}
     service-url:
       defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
-    registry-fetch-interval-seconds: 5
+
+    # CRITICAL: Don't block startup
+    registry-fetch-interval-seconds: 30
+    initial-instance-info-replication-interval-seconds: 40
+
     register-with-eureka: true
     fetch-registry: true
-    eureka-server-connect-timeout-seconds: 10
-    eureka-server-read-timeout-seconds: 10
+
+    # Faster timeouts
+    eureka-server-connect-timeout-seconds: 3
+    eureka-server-read-timeout-seconds: 5
+
+    # CRITICAL: Don't fail if Eureka is down during startup
+    should-unregister-on-shutdown: true
 
   instance:
     prefer-ip-address: false
     hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
     instance-id: ${spring.application.name}:${random.value}
 
-    # CLOUD RUN: Use HTTPS
     non-secure-port-enabled: false
     secure-port-enabled: true
     secure-port: 443
@@ -57,8 +72,8 @@ eureka:
     status-page-url: https://${eureka.instance.hostname}/actuator/info
     health-check-url: https://${eureka.instance.hostname}/actuator/health
 
-    lease-renewal-interval-in-seconds: 10
-    lease-expiration-duration-in-seconds: 30
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
 
 jwt:
   secret: ${JWT_SECRET:my-super-secret-jwt-key-for-educonnect-platform-minimum-256-bits-required}
@@ -73,15 +88,31 @@ app:
 
 logging:
   level:
-    root: INFO
-    com.tcon.auth_user_service: DEBUG
-    com.netflix.discovery: INFO
+    root: WARN
+    com.tcon.auth_user_service: INFO
+    com.netflix.discovery: WARN
+    org.springframework.data.mongodb: WARN
+    org.springframework.data.redis: WARN
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus
+      base-path: /actuator
   endpoint:
     health:
       show-details: always
+      probes:
+        enabled: true
+
+  # CRITICAL: Separate probes for Cloud Run
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
+    defaults:
+      enabled: false
+    ping:
+      enabled: true
