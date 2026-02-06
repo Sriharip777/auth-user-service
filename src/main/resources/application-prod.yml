@@ -14,15 +14,18 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-      timeout: 6000ms
+      password: ${REDIS_PASSWORD:}
+      timeout: 5000ms
+      connect-timeout: 5000ms
+      ssl: ${REDIS_SSL:false}
       lettuce:
         pool:
-          max-active: ${REDIS_POOL_MAX_ACTIVE:10}
-          max-idle: ${REDIS_POOL_MAX_IDLE:5}
-          min-idle: ${REDIS_POOL_MIN_IDLE:2}
+          max-active: 10
+          max-idle: 5
+          min-idle: 2
 
   kafka:
-    enabled: ${KAFKA_ENABLED:false}
+    enabled: false
 
   autoconfigure:
     exclude:
@@ -31,51 +34,54 @@ spring:
 
 eureka:
   client:
-    enabled: ${EUREKA_CLIENT_ENABLED:true}
+    enabled: true
     service-url:
       defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
-    registry-fetch-interval-seconds: ${EUREKA_FETCH_INTERVAL:5}
+    registry-fetch-interval-seconds: 5
     register-with-eureka: true
     fetch-registry: true
+    eureka-server-connect-timeout-seconds: 10
+    eureka-server-read-timeout-seconds: 10
+
   instance:
-    prefer-ip-address: ${EUREKA_PREFER_IP:true}
+    prefer-ip-address: false
     hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
     instance-id: ${spring.application.name}:${random.value}
-    lease-renewal-interval-in-seconds: 5
-    lease-expiration-duration-in-seconds: 10
-    health-check-url-path: /actuator/health
-    status-page-url-path: /actuator/info
+
+    # CLOUD RUN: Use HTTPS
+    non-secure-port-enabled: false
+    secure-port-enabled: true
+    secure-port: 443
+
+    home-page-url: https://${eureka.instance.hostname}/
+    status-page-url: https://${eureka.instance.hostname}/actuator/info
+    health-check-url: https://${eureka.instance.hostname}/actuator/health
+
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
 
 jwt:
   secret: ${JWT_SECRET:my-super-secret-jwt-key-for-educonnect-platform-minimum-256-bits-required}
-  expiration: ${JWT_EXPIRATION:86400000}
-  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+  expiration: 86400000
+  refresh-expiration: 604800000
 
 app:
   two-factor:
-    enabled: ${TWO_FACTOR_ENABLED:true}
+    enabled: true
   password-reset:
-    token-expiration: ${PASSWORD_RESET_EXPIRATION:3600000}
+    token-expiration: 3600000
 
 logging:
   level:
-    root: ${LOG_LEVEL_ROOT:INFO}
-    com.tcon.auth_user_service: ${LOG_LEVEL_APP:DEBUG}
-    org.springframework.data.mongodb: ${LOG_LEVEL_MONGO:WARN}
+    root: INFO
+    com.tcon.auth_user_service: DEBUG
+    com.netflix.discovery: INFO
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
-      base-path: /actuator
+        include: health,info
   endpoint:
     health:
       show-details: always
-      probes:
-        enabled: true
-  health:
-    livenessState:
-      enabled: true
-    readinessState:
-      enabled: true
