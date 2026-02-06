@@ -5,12 +5,9 @@ spring:
   application:
     name: auth-user-service
 
-  profiles:
-    active: ${SPRING_PROFILES_ACTIVE:local}
-
   data:
     mongodb:
-      uri: ${MONGODB_URI:mongodb+srv://educonnect:educonnect123@educonnect.sjmtr4c.mongodb.net/?appName=educonnect}
+      uri: ${MONGODB_URI:mongodb://localhost:27017}
       database: ${MONGODB_DATABASE:educonnect}
       auto-index-creation: true
 
@@ -20,9 +17,9 @@ spring:
       timeout: 6000ms
       lettuce:
         pool:
-          max-active: 10
-          max-idle: 5
-          min-idle: 2
+          max-active: ${REDIS_POOL_MAX_ACTIVE:10}
+          max-idle: ${REDIS_POOL_MAX_IDLE:5}
+          min-idle: ${REDIS_POOL_MIN_IDLE:2}
 
   kafka:
     enabled: ${KAFKA_ENABLED:false}
@@ -34,10 +31,10 @@ spring:
 
 eureka:
   client:
-    enabled: true
+    enabled: ${EUREKA_CLIENT_ENABLED:true}
     service-url:
       defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
-    registry-fetch-interval-seconds: 5
+    registry-fetch-interval-seconds: ${EUREKA_FETCH_INTERVAL:5}
     register-with-eureka: true
     fetch-registry: true
   instance:
@@ -46,28 +43,39 @@ eureka:
     instance-id: ${spring.application.name}:${random.value}
     lease-renewal-interval-in-seconds: 5
     lease-expiration-duration-in-seconds: 10
+    health-check-url-path: /actuator/health
+    status-page-url-path: /actuator/info
 
 jwt:
   secret: ${JWT_SECRET:my-super-secret-jwt-key-for-educonnect-platform-minimum-256-bits-required}
-  expiration: 86400000
-  refresh-expiration: 604800000
+  expiration: ${JWT_EXPIRATION:86400000}
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
 
 app:
   two-factor:
-    enabled: true
+    enabled: ${TWO_FACTOR_ENABLED:true}
   password-reset:
-    token-expiration: 3600000
+    token-expiration: ${PASSWORD_RESET_EXPIRATION:3600000}
 
 logging:
   level:
-    root: INFO
-    com.tcon.auth_user_service: DEBUG
+    root: ${LOG_LEVEL_ROOT:INFO}
+    com.tcon.auth_user_service: ${LOG_LEVEL_APP:DEBUG}
+    org.springframework.data.mongodb: ${LOG_LEVEL_MONGO:WARN}
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus
+      base-path: /actuator
   endpoint:
     health:
       show-details: always
+      probes:
+        enabled: true
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
