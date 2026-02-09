@@ -5,6 +5,8 @@ spring:
   application:
     name: auth-user-service
 
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
 
   data:
     mongodb:
@@ -23,7 +25,7 @@ spring:
           min-idle: ${REDIS_POOL_MIN_IDLE:2}
 
   kafka:
-    enabled: ${KAFKA_ENABLED:true}
+    enabled: ${KAFKA_ENABLED:false}
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
       group-id: ${KAFKA_CONSUMER_GROUP:auth-user-service}
@@ -36,17 +38,62 @@ eureka:
       defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
     register-with-eureka: true
     fetch-registry: true
-    registry-fetch-interval-seconds: 5
+
+    # make Eureka calls fast & non-blocking
+    registry-fetch-interval-seconds: 30
+    initial-instance-info-replication-interval-seconds: 40
+    instance-info-replication-interval-seconds: 30
+    eureka-server-connect-timeout-seconds: 2
+    eureka-server-read-timeout-seconds: 3
+    eureka-server-total-connections: 10
+    eureka-server-total-connections-per-host: 10
 
   instance:
-    prefer-ip-address: ${EUREKA_PREFER_IP_ADDRESS:true}
-    instance-id: ${spring.application.name}:${server.port}:${random.value}
-    lease-renewal-interval-in-seconds: 5
-    lease-expiration-duration-in-seconds: 10
+    # in Cloud Run use hostname, not IP
+    prefer-ip-address: ${EUREKA_PREFER_IP_ADDRESS:false}
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+    instance-id: ${spring.application.name}:${random.value}
+
+    # Cloud Run = HTTPS only from outside
+    non-secure-port-enabled: false
+    secure-port-enabled: true
+    secure-port: 443
+
     health-check-url-path: /actuator/health
     status-page-url-path: /actuator/info
+
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
 
 jwt:
   secret: ${JWT_SECRET:my-super-secret-jwt-key-for-educonnect-platform-minimum-256-bits-required}
   expiration: ${JWT_EXPIRATION:86400000}
   refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
+    # do not fail health if Eureka/Redis are down
+    eureka:
+      enabled: false
+    redis:
+      enabled: false
+
+logging:
+  level:
+    root: INFO
+    com.tcon.auth_user_service: DEBUG
+    com.netflix.discovery: INFO
