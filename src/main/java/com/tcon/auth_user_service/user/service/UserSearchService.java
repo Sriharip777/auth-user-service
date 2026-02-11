@@ -95,6 +95,7 @@ public class UserSearchService {
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();
+
     }
 
 }
