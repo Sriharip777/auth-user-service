@@ -62,15 +62,25 @@ services:
   notification:
     url: http://localhost:8085
 
+
 logging:
   level:
     root: INFO
-    com.tcon.auth_user_service: DEBUG
-  file:
-    name: logs/auth-user-service.log
+    com.tcon.api_gateway: DEBUG
+    org.springframework.cloud.gateway: INFO
+    org.springframework.cloud.gateway.handler.RoutePredicateHandlerMapping: DEBUG
+    org.springframework.cloud.loadbalancer: WARN
+    io.github.resilience4j: INFO
+    reactor.netty: WARN
+    io.netty: ERROR
+    org.springframework.data.redis: INFO
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] traceId=%X{correlationId} userId=%X{userId} %logger{36} - %msg%n"
-    file:    "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] traceId=%X{correlationId} userId=%X{userId} %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    # ✅ DISABLED: No file logging = No git conflicts!
+  # file:  # <-- COMMENTED OUT
+  #   name: logs/api-gateway.log
+  #   max-size: 10MB
+  #   max-history: 30
 
 management:
   endpoints:
