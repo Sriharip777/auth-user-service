@@ -5,5 +5,8 @@ public enum UserRole {
     TEACHER,
     ADMIN,
     PARENT,
-    MODERATOR
+    MODERATOR,
+    FINANCIAL_ADMIN,           // ✅ NEW
+    FINANCIAL_SUPPORT_ADMIN    // ✅ NEW
 }
+

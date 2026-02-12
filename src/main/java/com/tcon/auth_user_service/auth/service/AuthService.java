@@ -5,7 +5,9 @@ import com.tcon.auth_user_service.auth.security.JwtTokenProvider;
 import com.tcon.auth_user_service.auth.security.TwoFactorAuthService;
 import com.tcon.auth_user_service.event.UserEventPublisher;
 import com.tcon.auth_user_service.user.entity.User;
+import com.tcon.auth_user_service.user.entity.UserRole;
 import com.tcon.auth_user_service.user.entity.UserStatus;
+import com.tcon.auth_user_service.user.repository.AdminRoleRepository;
 import com.tcon.auth_user_service.user.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -30,6 +34,15 @@ public class AuthService {
     private final TwoFactorAuthService twoFactorAuthService;
     private final PasswordResetService passwordResetService;
     private final UserEventPublisher userEventPublisher;
+    private final AdminRoleRepository adminRoleRepository;  // ✅ NEW
+
+    // ✅ ADMIN ROLES - Now includes new financial roles
+    private static final List<String> ADMIN_ROLES = Arrays.asList(
+            "ADMIN",
+            "MODERATOR",
+            "FINANCIAL_ADMIN",           // ✅ NEW
+            "FINANCIAL_SUPPORT_ADMIN"    // ✅ NEW
+    );
 
     /**
      * Register user and immediately issue tokens
@@ -158,20 +171,36 @@ public class AuthService {
     }
 
     /* =========================================================
-       🔐 ADMIN REGISTRATION (ONLY ADDITION)
+       🔐 ADMIN REGISTRATION - UPDATED WITH DYNAMIC VALIDATION
        ========================================================= */
     /**
-     * Admin-only registration for ADMIN / SUPPORT / FINANCE users
+     * Admin-only registration for administrative roles
+     * ✅ Now supports: ADMIN, MODERATOR, FINANCIAL_ADMIN, FINANCIAL_SUPPORT_ADMIN
+     * ✅ Validates against both hardcoded list AND dynamic admin_roles collection
      */
     @Transactional
     public TokenResponse registerAdmin(RegisterRequest request) {
 
-        if (request.getRole() == null ||
-                !(request.getRole().name().equals("ADMIN")
-                        || request.getRole().name().equals("SUPPORT_STAFF")
-                        || request.getRole().name().equals("FINANCE_ADMIN"))) {
+        if (request.getRole() == null) {
+            throw new IllegalArgumentException("Role is required for admin registration");
+        }
 
-            throw new IllegalArgumentException("Invalid role for admin registration");
+        String requestedRole = request.getRole().name();
+
+        // ✅ Validate against STATIC admin roles list
+        boolean isStaticAdminRole = ADMIN_ROLES.contains(requestedRole);
+
+        // ✅ Validate against DYNAMIC admin_roles collection
+        boolean isDynamicAdminRole = adminRoleRepository
+                .findByRoleName(requestedRole)
+                .map(role -> Boolean.TRUE.equals(role.getIsActive()))
+                .orElse(false);
+
+        if (!isStaticAdminRole && !isDynamicAdminRole) {
+            throw new IllegalArgumentException(
+                    "Invalid role for admin registration: " + requestedRole +
+                            ". Allowed roles: " + ADMIN_ROLES
+            );
         }
 
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -191,14 +220,14 @@ public class AuthService {
                 .phoneNumber(request.getPhoneNumber())
                 .role(request.getRole())
                 .status(UserStatus.ACTIVE)
-                .emailVerified(true)
+                .emailVerified(true)  // ✅ Auto-verify admin emails
                 .twoFactorEnabled(false)
                 .failedLoginAttempts(0)
                 .build();
 
         User savedUser = userRepository.save(user);
 
-        log.info("Admin user created: {} ({})",
+        log.info("✅ Admin user created: {} ({})",
                 savedUser.getEmail(), savedUser.getRole());
 
         return buildTokenResponse(savedUser);
