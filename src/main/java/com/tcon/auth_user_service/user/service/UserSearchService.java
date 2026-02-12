@@ -8,7 +8,6 @@ import com.tcon.auth_user_service.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -36,6 +35,18 @@ public class UserSearchService {
     public List<UserProfileDto> getAllUsers() {
         log.debug("Retrieving all users");
         return userRepository.findAll().stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
+    // ✅ ADD THIS NEW METHOD
+    public List<UserProfileDto> getUsersByIds(List<String> userIds) {
+        log.info("📦 Fetching {} users by IDs", userIds.size());
+
+        List<User> users = userRepository.findAllById(userIds);
+        log.info("✅ Found {} users in database", users.size());
+
+        return users.stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
@@ -95,6 +106,7 @@ public class UserSearchService {
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();
+
     }
 
 }

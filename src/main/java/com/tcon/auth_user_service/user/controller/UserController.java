@@ -9,6 +9,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Slf4j
 @RestController
 @RequestMapping("/api/users")
@@ -17,9 +19,6 @@ public class UserController {
 
     private final UserSearchService userSearchService;
 
-    /**
-     * Get user details by userId (public endpoint for viewing profiles)
-     */
     @GetMapping("/{userId}")
     public ResponseEntity<UserProfileDto> getUserById(@PathVariable String userId) {
         log.info("Request to get user by ID: {}", userId);
@@ -27,14 +26,26 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
-    /**
-     * Get own user details (authenticated endpoint)
-     */
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UserProfileDto> getMyDetails(@AuthenticationPrincipal String userId) {
         log.info("Request to get own user details for userId: {}", userId);
         UserProfileDto user = userSearchService.getUserById(userId);
         return ResponseEntity.ok(user);
+    }
+
+    // ✅✅✅ ADD THIS ENTIRE METHOD ✅✅✅
+    @PostMapping("/batch")
+    public ResponseEntity<List<UserProfileDto>> getUsersByIds(@RequestBody BatchUserRequest request) {
+        log.info("📦 Batch request for {} users", request.getUserIds().size());
+        List<UserProfileDto> users = userSearchService.getUsersByIds(request.getUserIds());
+        log.info("✅ Returning {} user profiles", users.size());
+        return ResponseEntity.ok(users);
+    }
+
+    // ✅✅✅ ADD THIS INNER CLASS ✅✅✅
+    @lombok.Data
+    public static class BatchUserRequest {
+        private List<String> userIds;
     }
 }
