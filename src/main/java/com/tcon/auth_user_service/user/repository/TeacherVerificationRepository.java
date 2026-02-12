@@ -14,5 +14,4 @@ public interface TeacherVerificationRepository extends MongoRepository<TeacherVe
 
     Optional<TeacherVerification> findByTeacherUserId(String teacherUserId);
 
-    boolean existsByTeacherUserIdAndStatus(String teacherUserId, String status);
 }

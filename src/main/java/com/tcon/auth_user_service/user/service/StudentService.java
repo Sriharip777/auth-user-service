@@ -2,7 +2,9 @@ package com.tcon.auth_user_service.user.service;
 
 import com.tcon.auth_user_service.user.dto.StudentDto;
 import com.tcon.auth_user_service.user.entity.StudentProfile;
+import com.tcon.auth_user_service.user.entity.User;
 import com.tcon.auth_user_service.user.repository.StudentRepository;
+import com.tcon.auth_user_service.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ import java.util.stream.Collectors;
 public class StudentService {
 
     private final StudentRepository studentRepository;
+    private final UserRepository userRepository;
 
     @Transactional
     public StudentDto createProfile(String userId, StudentDto dto) {
@@ -38,13 +41,13 @@ public class StudentService {
 
         StudentProfile saved = studentRepository.save(profile);
         log.info("Student profile created for userId: {}", userId);
-        return toDto(saved);
+        return toDtoWithUserDetails(saved, userId);
     }
 
     public StudentDto getProfile(String userId) {
         StudentProfile profile = studentRepository.findByUserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Student profile not found for user: " + userId));
-        return toDto(profile);
+        return toDtoWithUserDetails(profile, userId);
     }
 
     @Transactional
@@ -62,7 +65,7 @@ public class StudentService {
 
         StudentProfile updated = studentRepository.save(profile);
         log.info("Student profile updated for userId: {}", userId);
-        return toDto(updated);
+        return toDtoWithUserDetails(updated, userId);
     }
 
     @Transactional
@@ -92,6 +95,23 @@ public class StudentService {
         return studentRepository.findByParentId(parentId).stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
+    }
+
+    // ✅ NEW METHOD: Convert to DTO with User details
+    private StudentDto toDtoWithUserDetails(StudentProfile profile, String userId) {
+        StudentDto dto = toDto(profile);
+
+        // Fetch user details and add to DTO
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found for userId: " + userId));
+
+        dto.setFirstName(user.getFirstName());
+        dto.setLastName(user.getLastName());
+        dto.setEmail(user.getEmail());
+        dto.setPhone(user.getPhoneNumber());
+
+        log.info("✅ Student profile with user details: {} {}", user.getFirstName(), user.getLastName());
+        return dto;
     }
 
     private StudentDto toDto(StudentProfile profile) {

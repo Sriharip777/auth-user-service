@@ -21,6 +21,10 @@ public class StudentDto {
 
     private String id;
     private String userId;
+    private String firstName;
+    private String lastName;
+    private String email;
+    private String phone;
 
     @NotBlank(message = "Grade level is required")
     private String gradeLevel;
