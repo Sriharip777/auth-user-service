@@ -5,7 +5,9 @@ import com.tcon.auth_user_service.user.dto.TeacherProfileResponseDto;
 import com.tcon.auth_user_service.user.dto.TeacherSearchDto;
 import com.tcon.auth_user_service.user.dto.UserProfileDto;
 import com.tcon.auth_user_service.user.entity.TeacherProfile;
+import com.tcon.auth_user_service.user.entity.TeacherVerification;
 import com.tcon.auth_user_service.user.repository.TeacherRepository;
+import com.tcon.auth_user_service.user.repository.TeacherVerificationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,13 +23,19 @@ public class TeacherService {
 
     private final TeacherRepository teacherRepository;
     private final UserSearchService userSearchService;
+    private final TeacherVerificationRepository teacherVerificationRepository;
+
 
     @Transactional
     public TeacherDto createProfile(String userId, TeacherDto dto) {
+
         if (teacherRepository.findByUserId(userId).isPresent()) {
-            throw new IllegalArgumentException("Teacher profile already exists for user: " + userId);
+            throw new IllegalArgumentException(
+                    "Teacher profile already exists for user: " + userId
+            );
         }
 
+        // 1️⃣ Create teacher profile
         TeacherProfile profile = TeacherProfile.builder()
                 .userId(userId)
                 .bio(dto.getBio())
@@ -43,9 +51,20 @@ public class TeacherService {
                 .timezone(dto.getTimezone())
                 .build();
 
-        TeacherProfile saved = teacherRepository.save(profile);
-        log.info("Teacher profile created for userId: {}", userId);
-        return toDto(saved);
+        TeacherProfile savedProfile = teacherRepository.save(profile);
+
+        // 2️⃣ 🔴 AUTO-CREATE VERIFICATION RECORD (THIS WAS MISSING)
+        TeacherVerification verification = TeacherVerification.builder()
+                .teacherUserId(userId)
+                .status("PENDING")
+                .documentUrls(List.of())
+                .build();
+
+        teacherVerificationRepository.save(verification);
+
+        log.info("✅ Teacher profile + verification created for userId: {}", userId);
+
+        return toDto(savedProfile);
     }
 
     public TeacherDto getProfile(String userId) {
