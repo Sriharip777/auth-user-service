@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: auth-user-service
+    name: ${SPRING_APPLICATION_NAME:auth-user-service}
 
   data:
     mongodb:
@@ -14,7 +14,11 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
       timeout: ${REDIS_TIMEOUT:6000ms}
+      database: 0
+      ssl:
+        enabled: ${REDIS_SSL:false}
       lettuce:
         pool:
           max-active: ${REDIS_POOL_MAX_ACTIVE:10}
@@ -23,35 +27,27 @@ spring:
 
   kafka:
     enabled: ${KAFKA_ENABLED:false}
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
-    consumer:
-      group-id: ${KAFKA_CONSUMER_GROUP:auth-user-service}
-      auto-offset-reset: ${KAFKA_AUTO_OFFSET_RESET:latest}
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
 
 eureka:
   client:
     enabled: ${EUREKA_ENABLED:true}
     service-url:
       defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+    registry-fetch-interval-seconds: 5
     register-with-eureka: true
     fetch-registry: true
 
-    # make Eureka calls fast & non-blocking
-    registry-fetch-interval-seconds: 30
-    initial-instance-info-replication-interval-seconds: 40
-    instance-info-replication-interval-seconds: 30
-    eureka-server-connect-timeout-seconds: 2
-    eureka-server-read-timeout-seconds: 3
-    eureka-server-total-connections: 10
-    eureka-server-total-connections-per-host: 10
-
   instance:
-    # in Cloud Run use hostname, not IP
-    prefer-ip-address: ${EUREKA_PREFER_IP_ADDRESS:false}
+    prefer-ip-address: ${EUREKA_PREFER_IP_ADDRESS:true}
     hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
     instance-id: ${spring.application.name}:${random.value}
 
-    # Cloud Run = HTTPS only from outside
+    # Cloud Run HTTPS configuration
     non-secure-port-enabled: false
     secure-port-enabled: true
     secure-port: 443
@@ -63,15 +59,29 @@ eureka:
     lease-expiration-duration-in-seconds: 90
 
 jwt:
-  secret: ${JWT_SECRET:my-super-secret-jwt-key-for-educonnect-platform-minimum-256-bits-required}
+  secret: ${JWT_SECRET:change-this-in-production}
   expiration: ${JWT_EXPIRATION:86400000}
   refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+
+app:
+  two-factor:
+    enabled: ${TWO_FACTOR_ENABLED:true}
+  password-reset:
+    token-expiration: 3600000
+  frontend:
+    url: ${FRONTEND_URL:http://localhost:5173}
+
+services:
+  notification:
+    url: ${NOTIFICATION_SERVICE_URL:http://localhost:8085}
+  learning:
+    url: ${LEARNING_SERVICE_URL:http://localhost:8084}
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics
       base-path: /actuator
   endpoint:
     health:
@@ -83,7 +93,6 @@ management:
       enabled: true
     readinessState:
       enabled: true
-    # do not fail health if Eureka/Redis are down
     eureka:
       enabled: false
     redis:
@@ -91,6 +100,10 @@ management:
 
 logging:
   level:
-    root: INFO
-    com.tcon.auth_user_service: DEBUG
-    com.netflix.discovery: INFO
+    root: ${LOG_LEVEL_ROOT:INFO}
+    com.tcon.auth_user_service: ${LOG_LEVEL_APP:DEBUG}
+    com.netflix.discovery: ${LOG_LEVEL_DISCOVERY:INFO}
+    org.springframework.data.mongodb: ${LOG_LEVEL_MONGODB:INFO}
+    org.springframework.data.redis: ${LOG_LEVEL_REDIS:INFO}
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
