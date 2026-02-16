@@ -62,6 +62,11 @@ services:
   notification:
     url: http://localhost:8085
 
+  learning:
+    url: http://localhost:8084
+
+
+
 
 logging:
   level:
