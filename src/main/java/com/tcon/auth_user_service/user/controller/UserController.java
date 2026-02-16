@@ -1,6 +1,9 @@
 package com.tcon.auth_user_service.user.controller;
 
+import com.tcon.auth_user_service.user.dto.ContactDto;
 import com.tcon.auth_user_service.user.dto.UserProfileDto;
+import com.tcon.auth_user_service.user.entity.UserRole;
+import com.tcon.auth_user_service.user.service.ContactService;
 import com.tcon.auth_user_service.user.service.UserSearchService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +21,7 @@ import java.util.List;
 public class UserController {
 
     private final UserSearchService userSearchService;
+    private final ContactService contactService;
 
     @GetMapping("/{userId}")
     public ResponseEntity<UserProfileDto> getUserById(@PathVariable String userId) {
@@ -47,5 +51,28 @@ public class UserController {
     @lombok.Data
     public static class BatchUserRequest {
         private List<String> userIds;
+    }
+
+    // ✅ ADD THIS NEW ENDPOINT
+    @GetMapping("/contacts")
+    public ResponseEntity<List<ContactDto>> getContacts(
+            @RequestHeader("X-User-Id") String userId,
+            @RequestHeader("X-User-Role") String userRoleStr) {
+
+        log.info("📇 Getting contacts for userId: {}, role: {}", userId, userRoleStr);
+
+        try {
+            UserRole role = UserRole.valueOf(userRoleStr.toUpperCase());
+            List<ContactDto> contacts = contactService.getContactsForUser(userId, role);
+            log.info("✅ Returning {} contacts for {}", contacts.size(), userId);
+            return ResponseEntity.ok(contacts);
+
+        } catch (IllegalArgumentException e) {
+            log.error("❌ Invalid role: {}", userRoleStr);
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            log.error("❌ Error getting contacts for {}: {}", userId, e.getMessage(), e);
+            return ResponseEntity.status(500).build();
+        }
     }
 }

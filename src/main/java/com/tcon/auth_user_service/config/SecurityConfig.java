@@ -1,6 +1,4 @@
 package com.tcon.auth_user_service.config;
-
-
 import com.tcon.auth_user_service.auth.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -54,7 +52,11 @@ public class SecurityConfig {
                                 "/error",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
-                                "/swagger-ui.html"
+                                "/swagger-ui.html",
+                                "/api/users/contacts",      // ✅ ADD THIS LINE
+                                "/api/users/batch",          // ✅ ADD THIS LINE
+                                "/api/users/{userId}"
+
                         ).permitAll()
 
                         // All other endpoints require authentication
