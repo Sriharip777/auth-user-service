@@ -1,10 +1,12 @@
 server:
-  port: ${PORT:8081}
+  port: ${PORT:8081}  # Local uses 8081
 
 spring:
   application:
-    name: ${SPRING_APPLICATION_NAME:auth-user-service}
+    name: auth-user-service
 
+  profiles:
+    active: dev
 
   data:
     mongodb:
@@ -16,18 +18,18 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
-      timeout: ${REDIS_TIMEOUT:6000ms}
+      timeout: 6000ms
       database: 0
       ssl:
-        enabled: ${REDIS_SSL:false}
+        enabled: false
       lettuce:
         pool:
-          max-active: ${REDIS_POOL_MAX_ACTIVE:10}
-          max-idle: ${REDIS_POOL_MAX_IDLE:5}
-          min-idle: ${REDIS_POOL_MIN_IDLE:2}
+          max-active: 10
+          max-idle: 5
+          min-idle: 2
 
   kafka:
-    enabled: ${KAFKA_ENABLED:false}
+    enabled: false
 
   autoconfigure:
     exclude:
@@ -36,47 +38,38 @@ spring:
 
 eureka:
   client:
-    enabled: ${EUREKA_ENABLED:true}
+    enabled: true
     service-url:
-      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+      defaultZone: http://localhost:8761/eureka/
     registry-fetch-interval-seconds: 5
     register-with-eureka: true
     fetch-registry: true
 
   instance:
-    prefer-ip-address: ${EUREKA_PREFER_IP_ADDRESS:true}
-    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
-    instance-id: ${spring.application.name}:${random.value}
-
-    # Cloud Run HTTPS configuration
-    non-secure-port-enabled: false
-    secure-port-enabled: true
-    secure-port: 443
-
-    health-check-url-path: /actuator/health
-    status-page-url-path: /actuator/info
-
+    prefer-ip-address: true
+    hostname: localhost
+    instance-id: ${spring.application.name}:${server.port}
     lease-renewal-interval-in-seconds: 30
     lease-expiration-duration-in-seconds: 90
 
 jwt:
-  secret: ${JWT_SECRET:change-this-in-production}
-  expiration: ${JWT_EXPIRATION:86400000}
-  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+  secret: ${JWT_SECRET:my-super-secret-jwt-key-for-educonnect-platform-minimum-256-bits-required}
+  expiration: 86400000
+  refresh-expiration: 604800000
 
 app:
   two-factor:
-    enabled: ${TWO_FACTOR_ENABLED:true}
+    enabled: true
   password-reset:
     token-expiration: 3600000
   frontend:
-    url: ${FRONTEND_URL:http://localhost:5173}
+    url: http://localhost:5173
 
 services:
   notification:
-    url: ${NOTIFICATION_SERVICE_URL:http://localhost:8085}
+    url: http://localhost:8085
   learning:
-    url: ${LEARNING_SERVICE_URL:http://localhost:8084}
+    url: http://localhost:8084
 
 management:
   endpoints:
@@ -87,24 +80,13 @@ management:
   endpoint:
     health:
       show-details: always
-      probes:
-        enabled: true
-  health:
-    livenessState:
-      enabled: true
-    readinessState:
-      enabled: true
-    eureka:
-      enabled: false
-    redis:
-      enabled: false
 
 logging:
   level:
-    root: ${LOG_LEVEL_ROOT:INFO}
-    com.tcon.auth_user_service: ${LOG_LEVEL_APP:DEBUG}
-    com.netflix.discovery: ${LOG_LEVEL_DISCOVERY:INFO}
-    org.springframework.data.mongodb: ${LOG_LEVEL_MONGODB:INFO}
-    org.springframework.data.redis: ${LOG_LEVEL_REDIS:INFO}
+    root: INFO
+    com.tcon.auth_user_service: DEBUG
+    com.netflix.discovery: INFO
+    org.springframework.data.mongodb: INFO
+    org.springframework.data.redis: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
