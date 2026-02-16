@@ -5,8 +5,6 @@ spring:
   application:
     name: ${SPRING_APPLICATION_NAME:auth-user-service}
 
-  profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}
 
   data:
     mongodb:
