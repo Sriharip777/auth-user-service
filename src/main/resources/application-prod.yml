@@ -1,24 +1,27 @@
 server:
-  port: ${PORT:8081}
+  port: ${PORT:8080}  # Production uses 8080
 
 spring:
   application:
-    name: ${SPRING_APPLICATION_NAME:auth-user-service}
+    name: auth-user-service
+
+  profiles:
+    active: prod
 
   data:
     mongodb:
-      uri: ${MONGODB_URI:mongodb://localhost:27017}
-      database: ${MONGODB_DATABASE:educonnect}
+      uri: ${MONGODB_URI}
+      database: ${MONGODB_DATABASE}
       auto-index-creation: true
 
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
       timeout: ${REDIS_TIMEOUT:6000ms}
       database: 0
       ssl:
-        enabled: ${REDIS_SSL:false}
+        enabled: ${REDIS_SSL:true}
       lettuce:
         pool:
           max-active: ${REDIS_POOL_MAX_ACTIVE:10}
@@ -37,14 +40,16 @@ eureka:
   client:
     enabled: ${EUREKA_ENABLED:true}
     service-url:
-      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+      defaultZone: ${EUREKA_URL}
     registry-fetch-interval-seconds: 5
     register-with-eureka: true
     fetch-registry: true
+    eureka-server-connect-timeout-seconds: 10
+    eureka-server-read-timeout-seconds: 10
 
   instance:
-    prefer-ip-address: ${EUREKA_PREFER_IP_ADDRESS:true}
-    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+    prefer-ip-address: ${EUREKA_PREFER_IP_ADDRESS:false}
+    hostname: ${EUREKA_INSTANCE_HOSTNAME}
     instance-id: ${spring.application.name}:${random.value}
 
     # Cloud Run HTTPS configuration
@@ -59,7 +64,7 @@ eureka:
     lease-expiration-duration-in-seconds: 90
 
 jwt:
-  secret: ${JWT_SECRET:change-this-in-production}
+  secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:86400000}
   refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
 
@@ -69,13 +74,13 @@ app:
   password-reset:
     token-expiration: 3600000
   frontend:
-    url: ${FRONTEND_URL:http://localhost:5173}
+    url: ${FRONTEND_URL:https://your-frontend.com}
 
 services:
   notification:
-    url: ${NOTIFICATION_SERVICE_URL:http://localhost:8085}
+    url: ${NOTIFICATION_SERVICE_URL:lb://NOTIFICATION-SERVICE}
   learning:
-    url: ${LEARNING_SERVICE_URL:http://localhost:8084}
+    url: ${LEARNING_SERVICE_URL:lb://LEARNING-SERVICE}
 
 management:
   endpoints:
@@ -97,13 +102,15 @@ management:
       enabled: false
     redis:
       enabled: false
+    mongo:
+      enabled: false
 
 logging:
   level:
     root: ${LOG_LEVEL_ROOT:INFO}
-    com.tcon.auth_user_service: ${LOG_LEVEL_APP:DEBUG}
+    com.tcon.auth_user_service: ${LOG_LEVEL_APP:INFO}
     com.netflix.discovery: ${LOG_LEVEL_DISCOVERY:INFO}
-    org.springframework.data.mongodb: ${LOG_LEVEL_MONGODB:INFO}
-    org.springframework.data.redis: ${LOG_LEVEL_REDIS:INFO}
+    org.springframework.data.mongodb: ${LOG_LEVEL_MONGODB:WARN}
+    org.springframework.data.redis: ${LOG_LEVEL_REDIS:WARN}
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
