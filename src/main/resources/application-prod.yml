@@ -1,5 +1,5 @@
 server:
-  port: ${PORT:8081}  # Production uses 8080
+  port: 8081
 
 spring:
   application:
@@ -7,26 +7,26 @@ spring:
 
   data:
     mongodb:
-      uri: ${MONGODB_URI}
-      database: ${MONGODB_DATABASE}
+      uri: mongodb+srv://educonnect:educonnect123@educonnect.sjmtr4c.mongodb.net/educonnect?appName=educonnect&connectTimeoutMS=20000&socketTimeoutMS=30000&serverSelectionTimeoutMS=30000
+      database: educonnect
       auto-index-creation: true
 
     redis:
-      host: ${REDIS_HOST}
-      port: ${REDIS_PORT}
-      password: ${REDIS_PASSWORD}
-      timeout: ${REDIS_TIMEOUT:6000ms}
+      host: redis-15043.c1.us-central1-2.gce.cloud.redislabs.com
+      port: 15043
+      password: Redies@123
+      timeout: 6000ms
       database: 0
       ssl:
-        enabled: ${REDIS_SSL:true}
+        enabled: true
       lettuce:
         pool:
-          max-active: ${REDIS_POOL_MAX_ACTIVE:10}
-          max-idle: ${REDIS_POOL_MAX_IDLE:5}
-          min-idle: ${REDIS_POOL_MIN_IDLE:2}
+          max-active: 10
+          max-idle: 5
+          min-idle: 2
 
   kafka:
-    enabled: ${KAFKA_ENABLED:false}
+    enabled: true
 
   autoconfigure:
     exclude:
@@ -35,69 +35,63 @@ spring:
 
 eureka:
   client:
-    enabled: ${EUREKA_ENABLED:true}
+    enabled: true
     service-url:
-      defaultZone: ${EUREKA_URL}
+      defaultZone: http://localhost:8761/eureka/
     registry-fetch-interval-seconds: 5
     register-with-eureka: true
     fetch-registry: true
-    eureka-server-connect-timeout-seconds: 10
-    eureka-server-read-timeout-seconds: 10
-
   instance:
-    prefer-ip-address: ${EUREKA_PREFER_IP_ADDRESS:false}
-    hostname: ${EUREKA_INSTANCE_HOSTNAME}
-    instance-id: ${spring.application.name}:${random.value}
-
-    # Cloud Run HTTPS configuration
-    non-secure-port-enabled: false
-    secure-port-enabled: true
-    secure-port: 443
-
-    health-check-url-path: /actuator/health
-    status-page-url-path: /actuator/info
-
-    lease-renewal-interval-in-seconds: 30
-    lease-expiration-duration-in-seconds: 90
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
 
 jwt:
-  secret: ${JWT_SECRET}
-  expiration: ${JWT_EXPIRATION:86400000}
-  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+  secret: my-super-secret-jwt-key-for-educonnect-platform-minimum-256-bits-required
+  expiration: 86400000
+  refresh-expiration: 604800000
 
 app:
   two-factor:
-    enabled: ${TWO_FACTOR_ENABLED:true}
+    enabled: true
   password-reset:
     token-expiration: 3600000
   frontend:
-    url: ${FRONTEND_URL:https://your-frontend.com}
+    url: http://localhost:5173
 
 services:
   notification:
-    url: ${NOTIFICATION_SERVICE_URL:lb://NOTIFICATION-SERVICE}
+    url: http://localhost:8085
+
   learning:
-    url: ${LEARNING_SERVICE_URL:lb://LEARNING-SERVICE}
+    url: http://localhost:8084
+
+
+
+
+logging:
+  level:
+    root: INFO
+    com.tcon.api_gateway: DEBUG
+    org.springframework.cloud.gateway: INFO
+    org.springframework.cloud.gateway.handler.RoutePredicateHandlerMapping: DEBUG
+    org.springframework.cloud.loadbalancer: WARN
+    io.github.resilience4j: INFO
+    reactor.netty: WARN
+    io.netty: ERROR
+    org.springframework.data.redis: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    # ✅ DISABLED: No file logging = No git conflicts!
+  # file:  # <-- COMMENTED OUT
+  #   name: logs/api-gateway.log
+  #   max-size: 10MB
+  #   max-history: 30
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
-      base-path: /actuator
+        include: health,info
   endpoint:
     health:
       show-details: always
-      probes:
-        enabled: true
-  health:
-    livenessState:
-      enabled: true
-    readinessState:
-      enabled: true
-    eureka:
-      enabled: false
-    redis:
-      enabled: false
-    mongo:
-      enabled: false
