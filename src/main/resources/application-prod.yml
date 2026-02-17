@@ -3,7 +3,6 @@
 # ============================================================================
 # Place this file in: src/main/resources/application-prod.yml
 # Activate with: SPRING_PROFILES_ACTIVE=prod
-# All values use environment variables with defaults
 
 server:
   port: ${SERVER_PORT:8081}
@@ -11,6 +10,15 @@ server:
 spring:
   application:
     name: auth-user-service
+
+  # ========================================================================
+  # CRITICAL FIX: Disable Spring Cloud Bootstrap
+  # ========================================================================
+  cloud:
+    bootstrap:
+      enabled: false  # Prevents Logback double initialization
+    refresh:
+      enabled: false  # Prevents unnecessary context refresh
 
   data:
     mongodb:
@@ -77,15 +85,15 @@ services:
 logging:
   level:
     root: INFO
-    com.tcon.api_gateway: INFO
-    org.springframework.cloud.gateway: INFO
-    org.springframework.cloud.gateway.handler.RoutePredicateHandlerMapping: INFO
-    org.springframework.cloud.loadbalancer: WARN
-    io.github.resilience4j: INFO
-    reactor.netty: WARN
-    io.netty: ERROR
-    org.springframework.data.redis: INFO
+    com.tcon: INFO
+    com.tcon.authservice: INFO
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+    org.springframework.cloud: INFO
     org.springframework.data.mongodb: INFO
+    org.springframework.data.redis: INFO
+    io.lettuce: WARN
+    io.netty: WARN
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
@@ -93,7 +101,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics
   endpoint:
     health:
       show-details: when-authorized
