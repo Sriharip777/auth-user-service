@@ -5,9 +5,6 @@ spring:
   application:
     name: auth-user-service
 
-  profiles:
-    active: prod
-
   data:
     mongodb:
       uri: ${MONGODB_URI}
