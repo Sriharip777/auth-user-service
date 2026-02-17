@@ -1,300 +1,60 @@
-# ===================================================================
-# CRITICAL SECURITY - NEVER COMMIT THESE FILES
-# ===================================================================
-
-# Environment files with secrets
-.env
-.env.*
-*.env
-.env.local
-.env.production
-.env.staging
-.env.*.local
-
-# Keep template files
-!.env.example
-
-# Production configuration files with sensitive data
-**/application-prod.yml
-**/application-production.yml
-**/application-prod.yaml
-**/application-production.yaml
-**/bootstrap-prod.yml
-**/bootstrap-production.yml
-
-# Certificates & Keys
-*.pem
-*.key
-*.crt
-*.p12
-*.jks
-*.keystore
-*.truststore
-
-# ===================================================================
-# BUILD ARTIFACTS
-# ===================================================================
-
-# Maven
+# Compiled class files & JARs
+*.jar
+*.class
 target/
 **/target/
-pom.xml.tag
-pom.xml.releaseBackup
-pom.xml.versionsBackup
-pom.xml.next
-release.properties
-dependency-reduced-pom.xml
-buildNumber.properties
-.mvn/timing.properties
-.mvn/wrapper/maven-wrapper.jar
-.mvn/wrapper/maven-wrapper.properties
-
-# Gradle
 build/
 **/build/
-.gradle/
-gradle-app.setting
-!gradle-wrapper.jar
 
-# Compiled class files
-*.class
-*.jar
-*.war
-*.ear
-*.nar
-
-# Package files
-*.zip
-*.tar.gz
-*.rar
-
-# ===================================================================
-# LOGS - PREVENTS GIT CONFLICTS
-# ===================================================================
-
+# Logs (CRITICAL - Prevents git conflicts!)
 logs/
 **/logs/
 *.log
-*.log.*
+logs/api-gateway.log.*
 *.gz
-spring.log
-application.log
-api-gateway.log
-api-gateway.log.*
-service-discovery.log
-auth-user-service.log
 
-# ===================================================================
-# IDE & EDITOR FILES
-# ===================================================================
+# Maven
+.mvn/wrapper/maven-wrapper.jar
+.mvn/wrapper/maven-wrapper.properties
 
-# IntelliJ IDEA
+# IDEs
 .idea/
 *.iws
 *.iml
 *.ipr
-out/
-.idea_modules/
-
-# Eclipse
 .classpath
+.factorypath
 .project
 .settings/
-.loadpath
-.factorypath
 .sts4-cache
-bin/
-.metadata/
-.recommenders/
-
-# NetBeans
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-
-# Visual Studio Code
 .vscode/
-.code-workspace
+.nbproject/private/
+**/src/main/**/target/
+**/src/test/**/target/
 
-# Vim
-*.swp
-*.swo
-*~
-.*.sw[a-z]
-
-# Emacs
-*~
-\#*\#
-.\#*
-
-# ===================================================================
-# OS FILES
-# ===================================================================
-
-# macOS
+# OS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-.AppleDouble
-.LSOverride
-
-# Windows
 Thumbs.db
-Thumbs.db:encryptable
-ehthumbs.db
-ehthumbs_vista.db
-Desktop.ini
-$RECYCLE.BIN/
 
-# Linux
-.directory
-.Trash-*
-.nfs*
+# Environment
+.env
+*.env
+!.env.example
 
-# ===================================================================
-# SPRING BOOT SPECIFIC
-# ===================================================================
-
-# Spring Boot DevTools
-spring-boot-devtools.properties
-
-# Spring Boot actuator sensitive endpoints backup
-application-actuator.properties
-
-# H2 Database files
+# Database
 *.db
-*.mv.db
-*.trace.db
-
-# Derby
-derby.log
-
-# ===================================================================
-# DATABASE & CACHE
-# ===================================================================
-
-# MongoDB
 *.mdb
-*.ldb
-
-# SQLite
 *.sqlite
-*.sqlite3
-
-# Redis dump files
-dump.rdb
-appendonly.aof
-
-# ===================================================================
-# DOCKER
-# ===================================================================
 
 # Docker
 .dockerignore
-docker-compose.override.yml
-.docker/
 
-# ===================================================================
-# NODE/FRONTEND (if applicable)
-# ===================================================================
-
-# Node
+# Node (if frontend)
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-lerna-debug.log*
-.pnpm-debug.log*
-
-# Frontend build
-dist/
-dist-ssr/
-*.local
-
-# ===================================================================
-# TEMPORARY & BACKUP FILES
-# ===================================================================
 
 # Temporary files
 *.tmp
 *.temp
-*.bak
-*.swp
-*.swo
-*.orig
-
-# Backup files
-*~
-*.backup
-*.old
-
-# Test coverage
-coverage/
-*.coverage
-
-# ===================================================================
-# CLOUD & DEPLOYMENT
-# ===================================================================
-
-# Terraform
-*.tfstate
-*.tfstate.backup
-.terraform/
-*.tfvars
-
-# Kubernetes
-*-secret.yaml
-*-secrets.yaml
-
-# ===================================================================
-# MISC
-# ===================================================================
-
-# JRebel
-rebel.xml
-rebel-remote.xml
-
-# STS
-.springBeans
-
-# Spring Tool Suite
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-
-# JUnit test results
-TEST-*.xml
-
-# Compiled documentation
-*.pdf
-docs/build/
-
-# Sonar
-.sonar/
-.scannerwork/
-
-# Python (if using any Python scripts)
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-venv/
-ENV/
-
-# Generated files
-HELP.md
-
-# Application-specific sensitive files
-application-secrets.yml
-secrets.yml
-credentials.json
-service-account.json
