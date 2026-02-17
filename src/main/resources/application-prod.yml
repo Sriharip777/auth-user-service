@@ -1,5 +1,12 @@
+# ============================================================================
+# APPLICATION-PROD.YML - PRODUCTION CONFIGURATION (CLOUD RUN)
+# ============================================================================
+# Place this file in: src/main/resources/application-prod.yml
+# Activate with: SPRING_PROFILES_ACTIVE=prod
+# All values use environment variables with defaults
+
 server:
-  port: 8081
+  port: ${SERVER_PORT:8081}
 
 spring:
   application:
@@ -7,26 +14,26 @@ spring:
 
   data:
     mongodb:
-      uri: mongodb+srv://educonnect:educonnect123@educonnect.sjmtr4c.mongodb.net/educonnect?appName=educonnect&connectTimeoutMS=20000&socketTimeoutMS=30000&serverSelectionTimeoutMS=30000
-      database: educonnect
+      uri: ${MONGODB_URI:mongodb+srv://educonnect:educonnect123@educonnect.sjmtr4c.mongodb.net/educonnect?appName=educonnect&connectTimeoutMS=20000&socketTimeoutMS=30000&serverSelectionTimeoutMS=30000}
+      database: ${MONGODB_DATABASE:educonnect}
       auto-index-creation: true
 
     redis:
-      host: redis-15043.c1.us-central1-2.gce.cloud.redislabs.com
-      port: 15043
-      password: Redies@123
-      timeout: 6000ms
+      host: ${REDIS_HOST:redis-15043.c1.us-central1-2.gce.cloud.redislabs.com}
+      port: ${REDIS_PORT:15043}
+      password: ${REDIS_PASSWORD:Redies@123}
+      timeout: ${REDIS_TIMEOUT:6000ms}
       database: 0
       ssl:
-        enabled: true
+        enabled: ${REDIS_SSL:true}
       lettuce:
         pool:
-          max-active: 10
-          max-idle: 5
-          min-idle: 2
+          max-active: ${REDIS_POOL_MAX_ACTIVE:10}
+          max-idle: ${REDIS_POOL_MAX_IDLE:5}
+          min-idle: ${REDIS_POOL_MIN_IDLE:2}
 
   kafka:
-    enabled: true
+    enabled: ${KAFKA_ENABLED:false}
 
   autoconfigure:
     exclude:
@@ -35,20 +42,23 @@ spring:
 
 eureka:
   client:
-    enabled: true
+    enabled: ${EUREKA_ENABLED:true}
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URL:https://educonservicediscovery-64307221061.asia-south1.run.app/eureka/}
     registry-fetch-interval-seconds: 5
     register-with-eureka: true
     fetch-registry: true
   instance:
-    prefer-ip-address: true
-    instance-id: ${spring.application.name}:${server.port}
+    prefer-ip-address: ${EUREKA_PREFER_IP_ADDRESS:false}
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:educonauthservice-64307221061.asia-south1.run.app}
+    instance-id: ${spring.application.name}:${eureka.instance.hostname}
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
 
 jwt:
-  secret: my-super-secret-jwt-key-for-educonnect-platform-minimum-256-bits-required
-  expiration: 86400000
-  refresh-expiration: 604800000
+  secret: ${JWT_SECRET:my-super-secret-jwt-key-for-educonnect-platform-minimum-256-bits-required}
+  expiration: ${JWT_EXPIRATION:86400000}
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
 
 app:
   two-factor:
@@ -56,36 +66,28 @@ app:
   password-reset:
     token-expiration: 3600000
   frontend:
-    url: http://localhost:5173
+    url: ${FRONTEND_URL:https://educonnect.app}
 
 services:
   notification:
-    url: http://localhost:8085
-
+    url: ${NOTIFICATION_SERVICE_URL:http://notification-service:8085}
   learning:
-    url: http://localhost:8084
-
-
-
+    url: ${LEARNING_SERVICE_URL:http://learning-service:8084}
 
 logging:
   level:
     root: INFO
-    com.tcon.api_gateway: DEBUG
+    com.tcon.api_gateway: INFO
     org.springframework.cloud.gateway: INFO
-    org.springframework.cloud.gateway.handler.RoutePredicateHandlerMapping: DEBUG
+    org.springframework.cloud.gateway.handler.RoutePredicateHandlerMapping: INFO
     org.springframework.cloud.loadbalancer: WARN
     io.github.resilience4j: INFO
     reactor.netty: WARN
     io.netty: ERROR
     org.springframework.data.redis: INFO
+    org.springframework.data.mongodb: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-    # ✅ DISABLED: No file logging = No git conflicts!
-  # file:  # <-- COMMENTED OUT
-  #   name: logs/api-gateway.log
-  #   max-size: 10MB
-  #   max-history: 30
 
 management:
   endpoints:
@@ -94,4 +96,9 @@ management:
         include: health,info
   endpoint:
     health:
-      show-details: always
+      show-details: when-authorized
+  health:
+    redis:
+      enabled: true
+    mongo:
+      enabled: true
