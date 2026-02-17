@@ -37,12 +37,14 @@ eureka:
   client:
     enabled: true
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      # LOCAL: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
     registry-fetch-interval-seconds: 5
     register-with-eureka: true
     fetch-registry: true
   instance:
     prefer-ip-address: true
+    # use app-name so gateway can find it with lb://auth-user-service
     instance-id: ${spring.application.name}:${server.port}
 
 jwt:
@@ -61,19 +63,13 @@ app:
 services:
   notification:
     url: http://localhost:8085
-
   learning:
     url: http://localhost:8084
-
-
-
 
 logging:
   level:
     root: INFO
-    com.tcon.api_gateway: DEBUG
-    org.springframework.cloud.gateway: INFO
-    org.springframework.cloud.gateway.handler.RoutePredicateHandlerMapping: DEBUG
+    com.tcon.authuserservice: DEBUG
     org.springframework.cloud.loadbalancer: WARN
     io.github.resilience4j: INFO
     reactor.netty: WARN
@@ -81,11 +77,6 @@ logging:
     org.springframework.data.redis: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-    # ✅ DISABLED: No file logging = No git conflicts!
-  # file:  # <-- COMMENTED OUT
-  #   name: logs/api-gateway.log
-  #   max-size: 10MB
-  #   max-history: 30
 
 management:
   endpoints:
