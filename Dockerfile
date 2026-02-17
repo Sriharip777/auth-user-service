@@ -18,9 +18,8 @@ RUN ./mvnw dependency:go-offline
 # Copy source code
 COPY src ./src
 
-# Build JAR
+# Build JAR with production profile
 RUN ./mvnw clean package -DskipTests=true
-
 
 # ================================
 # Runtime stage
@@ -31,17 +30,29 @@ WORKDIR /app
 
 # Create non-root user (security best practice)
 RUN addgroup -S spring && adduser -S spring -G spring
-USER spring:spring
 
 # Copy JAR from builder
 COPY --from=builder /app/target/*.jar app.jar
 
-# Expose application port
-EXPOSE 8081
+# Fix permissions
+RUN chown spring:spring app.jar
+
+# Switch to non-root user
+USER spring:spring
+
+# ✅ FIXED: Expose 8080 (not 8081)
+EXPOSE 8080
 
 # Health check (Spring Boot Actuator)
-HEALTHCHECK --interval=30s --timeout=3s --start-period=30s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8081/actuator/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
 
-# Run application
-ENTRYPOINT ["java", "-Xms256m", "-Xmx512m", "-jar", "app.jar"]
+# ✅ FIXED: Increased memory and added Java options
+ENTRYPOINT ["java", \
+    "-Xms512m", \
+    "-Xmx1024m", \
+    "-XX:+UseContainerSupport", \
+    "-XX:MaxRAMPercentage=75.0", \
+    "-Djava.security.egd=file:/dev/./urandom", \
+    "-jar", \
+    "app.jar"]

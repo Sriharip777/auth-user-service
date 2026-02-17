@@ -1,60 +1,114 @@
-# Compiled class files & JARs
-*.jar
-*.class
+# ===================================================================
+# CRITICAL SECURITY - NEVER COMMIT THESE FILES
+# ===================================================================
+
+# Environment files with secrets
+.env
+.env.*
+*.env
+.env.local
+.env.production
+.env.staging
+
+# Keep template files
+!.env.example
+
+# Production configuration files
+**/application-prod.yml
+**/application-prod.yaml
+**/application-production.yml
+**/bootstrap-prod.yml
+
+# ===================================================================
+# BUILD ARTIFACTS
+# ===================================================================
+
+# Maven
 target/
 **/target/
 build/
 **/build/
-
-# Logs (CRITICAL - Prevents git conflicts!)
-logs/
-**/logs/
-*.log
-logs/api-gateway.log.*
-*.gz
-
-# Maven
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
 .mvn/wrapper/maven-wrapper.jar
 .mvn/wrapper/maven-wrapper.properties
 
-# IDEs
+# Compiled files
+*.class
+*.jar
+*.war
+*.ear
+
+# ===================================================================
+# LOGS - PREVENTS GIT CONFLICTS
+# ===================================================================
+
+logs/
+**/logs/
+*.log
+*.log.*
+*.gz
+spring.log
+application.log
+
+# ===================================================================
+# IDE & EDITOR FILES
+# ===================================================================
+
+# IntelliJ IDEA
 .idea/
 *.iws
 *.iml
 *.ipr
+out/
+
+# Eclipse
 .classpath
-.factorypath
 .project
 .settings/
+.factorypath
 .sts4-cache
-.vscode/
-.nbproject/private/
-**/src/main/**/target/
-**/src/test/**/target/
+bin/
 
-# OS
+# VSCode
+.vscode/
+
+# NetBeans
+.nbproject/private/
+
+# ===================================================================
+# OS FILES
+# ===================================================================
+
 .DS_Store
 Thumbs.db
+.AppleDouble
+.LSOverride
+Desktop.ini
 
-# Environment
-.env
-*.env
-!.env.example
+# ===================================================================
+# DATABASE & TEMP
+# ===================================================================
 
-# Database
 *.db
 *.mdb
 *.sqlite
+*.tmp
+*.temp
+*.bak
 
-# Docker
+# ===================================================================
+# DOCKER
+# ===================================================================
+
 .dockerignore
 
-# Node (if frontend)
+# ===================================================================
+# NODE (if applicable)
+# ===================================================================
+
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-# Temporary files
-*.tmp
-*.temp
