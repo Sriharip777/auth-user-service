@@ -1,47 +1,32 @@
-# ============================================================================
-# APPLICATION-PROD.YML - PRODUCTION CONFIGURATION (CLOUD RUN)
-# ============================================================================
-# Place this file in: src/main/resources/application-prod.yml
-# Activate with: SPRING_PROFILES_ACTIVE=prod
-
 server:
-  port: ${SERVER_PORT:8081}
+  port: 8081
 
 spring:
   application:
     name: auth-user-service
 
-  # ========================================================================
-  # CRITICAL FIX: Disable Spring Cloud Bootstrap
-  # ========================================================================
-  cloud:
-    bootstrap:
-      enabled: false  # Prevents Logback double initialization
-    refresh:
-      enabled: false  # Prevents unnecessary context refresh
-
   data:
     mongodb:
-      uri: ${MONGODB_URI:mongodb+srv://educonnect:educonnect123@educonnect.sjmtr4c.mongodb.net/educonnect?appName=educonnect&connectTimeoutMS=20000&socketTimeoutMS=30000&serverSelectionTimeoutMS=30000}
-      database: ${MONGODB_DATABASE:educonnect}
+      uri: mongodb+srv://educonnect:educonnect123@educonnect.sjmtr4c.mongodb.net/educonnect?appName=educonnect&connectTimeoutMS=20000&socketTimeoutMS=30000&serverSelectionTimeoutMS=30000
+      database: educonnect
       auto-index-creation: true
 
     redis:
-      host: ${REDIS_HOST:redis-15043.c1.us-central1-2.gce.cloud.redislabs.com}
-      port: ${REDIS_PORT:15043}
-      password: ${REDIS_PASSWORD:Redies@123}
-      timeout: ${REDIS_TIMEOUT:6000ms}
+      host: redis-15043.c1.us-central1-2.gce.cloud.redislabs.com
+      port: 15043
+      password: Redies@123
+      timeout: 6000ms
       database: 0
       ssl:
-        enabled: ${REDIS_SSL:true}
+        enabled: true
       lettuce:
         pool:
-          max-active: ${REDIS_POOL_MAX_ACTIVE:10}
-          max-idle: ${REDIS_POOL_MAX_IDLE:5}
-          min-idle: ${REDIS_POOL_MIN_IDLE:2}
+          max-active: 10
+          max-idle: 5
+          min-idle: 2
 
   kafka:
-    enabled: ${KAFKA_ENABLED:false}
+    enabled: true
 
   autoconfigure:
     exclude:
@@ -50,23 +35,20 @@ spring:
 
 eureka:
   client:
-    enabled: ${EUREKA_ENABLED:true}
+    enabled: true
     service-url:
-      defaultZone: ${EUREKA_URL:https://educonservicediscovery-64307221061.asia-south1.run.app/eureka/}
+      defaultZone: http://localhost:8761/eureka/
     registry-fetch-interval-seconds: 5
     register-with-eureka: true
     fetch-registry: true
   instance:
-    prefer-ip-address: ${EUREKA_PREFER_IP_ADDRESS:false}
-    hostname: ${EUREKA_INSTANCE_HOSTNAME:educonauthservice-64307221061.asia-south1.run.app}
-    instance-id: ${spring.application.name}:${eureka.instance.hostname}
-    lease-renewal-interval-in-seconds: 10
-    lease-expiration-duration-in-seconds: 30
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
 
 jwt:
-  secret: ${JWT_SECRET:my-super-secret-jwt-key-for-educonnect-platform-minimum-256-bits-required}
-  expiration: ${JWT_EXPIRATION:86400000}
-  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+  secret: my-super-secret-jwt-key-for-educonnect-platform-minimum-256-bits-required
+  expiration: 86400000
+  refresh-expiration: 604800000
 
 app:
   two-factor:
@@ -74,39 +56,42 @@ app:
   password-reset:
     token-expiration: 3600000
   frontend:
-    url: ${FRONTEND_URL:https://educonnect.app}
+    url: http://localhost:5173
 
 services:
   notification:
-    url: ${NOTIFICATION_SERVICE_URL:http://notification-service:8085}
+    url: http://localhost:8085
+
   learning:
-    url: ${LEARNING_SERVICE_URL:http://learning-service:8084}
+    url: http://localhost:8084
+
+
+
 
 logging:
   level:
     root: INFO
-    com.tcon: INFO
-    com.tcon.authservice: INFO
-    org.springframework.web: INFO
-    org.springframework.security: INFO
-    org.springframework.cloud: INFO
-    org.springframework.data.mongodb: INFO
+    com.tcon.api_gateway: DEBUG
+    org.springframework.cloud.gateway: INFO
+    org.springframework.cloud.gateway.handler.RoutePredicateHandlerMapping: DEBUG
+    org.springframework.cloud.loadbalancer: WARN
+    io.github.resilience4j: INFO
+    reactor.netty: WARN
+    io.netty: ERROR
     org.springframework.data.redis: INFO
-    io.lettuce: WARN
-    io.netty: WARN
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    # ✅ DISABLED: No file logging = No git conflicts!
+  # file:  # <-- COMMENTED OUT
+  #   name: logs/api-gateway.log
+  #   max-size: 10MB
+  #   max-history: 30
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info
   endpoint:
     health:
-      show-details: when-authorized
-  health:
-    redis:
-      enabled: true
-    mongo:
-      enabled: true
+      show-details: always
