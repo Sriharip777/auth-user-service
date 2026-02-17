@@ -41,7 +41,7 @@ RUN chown spring:spring app.jar
 USER spring:spring
 
 # ✅ FIXED: Expose 8080 (not 8081)
-EXPOSE 8080
+EXPOSE 8081
 
 # Health check (Spring Boot Actuator)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
