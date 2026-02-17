@@ -101,13 +101,3 @@ management:
       enabled: false
     mongo:
       enabled: false
-
-logging:
-  level:
-    root: ${LOG_LEVEL_ROOT:INFO}
-    com.tcon.auth_user_service: ${LOG_LEVEL_APP:INFO}
-    com.netflix.discovery: ${LOG_LEVEL_DISCOVERY:INFO}
-    org.springframework.data.mongodb: ${LOG_LEVEL_MONGODB:WARN}
-    org.springframework.data.redis: ${LOG_LEVEL_REDIS:WARN}
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
