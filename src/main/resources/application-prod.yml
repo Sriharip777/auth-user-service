@@ -1,5 +1,5 @@
 server:
-  port: 8081
+  port: ${PORT:8081}  # Cloud Run overrides this to 8080 usually
 
 spring:
   application:
@@ -7,14 +7,14 @@ spring:
 
   data:
     mongodb:
-      uri: mongodb+srv://educonnect:educonnect123@educonnect.sjmtr4c.mongodb.net/educonnect?appName=educonnect&connectTimeoutMS=20000&socketTimeoutMS=30000&serverSelectionTimeoutMS=30000
+      uri: ${MONGODB_URI}  # Use Env Var for security
       database: educonnect
       auto-index-creation: true
 
     redis:
-      host: redis-15043.c1.us-central1-2.gce.cloud.redislabs.com
-      port: 15043
-      password: Redies@123
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:15043}
+      password: ${REDIS_PASSWORD}
       timeout: 6000ms
       database: 0
       ssl:
@@ -27,28 +27,46 @@ spring:
 
   kafka:
     enabled: true
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
 
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
 
+# Eureka Client Configuration (Cloud Run)
 eureka:
   client:
     enabled: true
-    service-url:
-      # LOCAL: http://localhost:8761/eureka/
-      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
-    registry-fetch-interval-seconds: 5
     register-with-eureka: true
     fetch-registry: true
+    service-url:
+      defaultZone: ${EUREKA_URL}
+    registry-fetch-interval-seconds: 30
+
   instance:
-    prefer-ip-address: true
-    # use app-name so gateway can find it with lb://auth-user-service
-    instance-id: ${spring.application.name}:${server.port}
+    # 🔴 KEY FIX: Use Hostname for Cloud Run routing
+    prefer-ip-address: false
+    hostname: ${EUREKA_INSTANCE_HOSTNAME}
+
+    # Instance ID must be unique
+    instance-id: ${spring.application.name}:${random.value}
+
+    # 🔴 KEY FIX: Register as Secure HTTPS Service (Port 443)
+    non-secure-port-enabled: false
+    secure-port-enabled: true
+    secure-port: 443
+
+    # Health check URLs using public hostname
+    home-page-url: https://${eureka.instance.hostname}/
+    status-page-url: https://${eureka.instance.hostname}/actuator/info
+    health-check-url: https://${eureka.instance.hostname}/actuator/health
+
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
 
 jwt:
-  secret: my-super-secret-jwt-key-for-educonnect-platform-minimum-256-bits-required
+  secret: ${JWT_SECRET}
   expiration: 86400000
   refresh-expiration: 604800000
 
@@ -58,13 +76,13 @@ app:
   password-reset:
     token-expiration: 3600000
   frontend:
-    url: http://localhost:5173
+    url: ${FRONTEND_URL:http://localhost:5173}
 
 services:
   notification:
-    url: http://localhost:8085
+    url: ${NOTIFICATION_SERVICE_URL:http://localhost:8085}
   learning:
-    url: http://localhost:8084
+    url: ${LEARNING_SERVICE_URL:http://localhost:8084}
 
 logging:
   level:
