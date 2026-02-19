@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: auth-user-service
+    name: AUTH-USER-SERVICE
 
   data:
     mongodb:
@@ -12,6 +12,7 @@ spring:
       auto-index-creation: true
 
     redis:
+      # SINGLE SOURCE OF TRUTH FOR REDIS
       host: ${REDIS_HOST:redis-15043.c1.us-central1-2.gce.cloud.redislabs.com}
       port: ${REDIS_PORT:15043}
       password: ${REDIS_PASSWORD:Redies@123}
@@ -43,23 +44,15 @@ eureka:
     fetch-registry: true
 
   instance:
-    # 🔴 KEY FIX: MUST be false on Cloud Run — internal IP is not reachable
     prefer-ip-address: ${EUREKA_PREFER_IP_ADDRESS:false}
-
-    # 🔴 KEY FIX: Register the public Cloud Run hostname, not internal IP
     hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
     instance-id: ${spring.application.name}:${random.value}
-
-    # 🔴 KEY FIX: Register as HTTPS (port 443) — Cloud Run only serves HTTPS
     non-secure-port-enabled: false
     secure-port-enabled: true
     secure-port: 443
-
-    # Health check URLs using public Cloud Run hostname
     home-page-url: https://${eureka.instance.hostname}/
     status-page-url: https://${eureka.instance.hostname}/actuator/info
     health-check-url: https://${eureka.instance.hostname}/actuator/health
-
     lease-renewal-interval-in-seconds: 10
     lease-expiration-duration-in-seconds: 30
 
