@@ -12,14 +12,13 @@ spring:
       auto-index-creation: true
 
     redis:
-      # SINGLE SOURCE OF TRUTH FOR REDIS
       host: ${REDIS_HOST:redis-15043.c1.us-central1-2.gce.cloud.redislabs.com}
       port: ${REDIS_PORT:15043}
       password: ${REDIS_PASSWORD:Redies@123}
       timeout: ${REDIS_TIMEOUT:6000ms}
       database: 0
       ssl:
-        enabled: ${REDIS_SSL:true}
+        enabled: ${REDIS_SSL:false}   # default FALSE (non‑SSL). Set REDIS_SSL=true only if port is TLS.
       lettuce:
         pool:
           max-active: ${REDIS_POOL_MAX_ACTIVE:10}
