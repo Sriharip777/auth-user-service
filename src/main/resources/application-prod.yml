@@ -1,4 +1,5 @@
 server:
+  # Local default 8081; Cloud Run overrides with PORT
   port: ${PORT:8081}
 
 spring:
@@ -18,7 +19,7 @@ spring:
       timeout: ${REDIS_TIMEOUT:6000ms}
       database: 0
       ssl:
-        enabled: ${REDIS_SSL:false}   # default FALSE (non‑SSL). Set REDIS_SSL=true only if port is TLS.
+        enabled: ${REDIS_SSL:false}
       lettuce:
         pool:
           max-active: ${REDIS_POOL_MAX_ACTIVE:10}
@@ -36,15 +37,16 @@ spring:
 eureka:
   client:
     enabled: ${EUREKA_ENABLED:true}
-    service-url:
-      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
-    registry-fetch-interval-seconds: 30
     register-with-eureka: true
     fetch-registry: true
+    service-url:
+      defaultZone: ${EUREKA_URL:https://educonservicediscovery-64307221061.asia-south1.run.app/eureka/}
+    registry-fetch-interval-seconds: 30
 
   instance:
-    prefer-ip-address: ${EUREKA_PREFER_IP_ADDRESS:false}
+    # In Cloud Run set to educonauthservice-...run.app
     hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+    prefer-ip-address: ${EUREKA_PREFER_IP_ADDRESS:false}
     instance-id: ${spring.application.name}:${random.value}
     non-secure-port-enabled: false
     secure-port-enabled: true
