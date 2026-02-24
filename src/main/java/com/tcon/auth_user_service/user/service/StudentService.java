@@ -93,9 +93,10 @@ public class StudentService {
     // ADD THIS METHOD
     public List<StudentDto> getStudentsByParentId(String parentId) {
         return studentRepository.findByParentId(parentId).stream()
-                .map(this::toDto)
+                .map(profile -> toDtoWithUserDetails(profile, profile.getUserId()))
                 .collect(Collectors.toList());
     }
+
 
     // ✅ NEW METHOD: Convert to DTO with User details
     private StudentDto toDtoWithUserDetails(StudentProfile profile, String userId) {
