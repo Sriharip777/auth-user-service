@@ -21,15 +21,18 @@ import java.util.Map;
 
 @Slf4j
 @Configuration
-@ConditionalOnProperty(name = "spring.kafka.enabled", havingValue = "true")  // ✅ CHANGED FROM kafka.enabled
+@ConditionalOnProperty(name = "spring.kafka.enabled", havingValue = "true", matchIfMissing = true)
 public class KafkaConfig {
 
     @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
     private String bootstrapServers;
 
+    @Value("${spring.kafka.consumer.group-id:auth-user-service-group}")
+    private String groupId;
+
     @Bean
     public ProducerFactory<String, Object> producerFactory() {
-        log.info("🔧 Configuring Kafka Producer");
+        log.info("🔧 Configuring Kafka Producer → bootstrap-servers={}", bootstrapServers);
 
         Map<String, Object> config = new HashMap<>();
         config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
@@ -37,19 +40,26 @@ public class KafkaConfig {
         config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
         config.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, false);
 
+        // Cloud Run optimizations
+        config.put(ProducerConfig.ACKS_CONFIG, "all");
+        config.put(ProducerConfig.RETRIES_CONFIG, 3);
+        config.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
+        config.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 1);
+
         return new DefaultKafkaProducerFactory<>(config);
     }
 
     @Bean
     public KafkaTemplate<String, Object> kafkaTemplate() {
+        KafkaTemplate<String, Object> template = new KafkaTemplate<>(producerFactory());
         log.info("✅ Kafka Template created");
-        return new KafkaTemplate<>(producerFactory());
+        return template;
     }
 
     @Bean
     public ConsumerFactory<String, Object> consumerFactory() {
-        log.info("🔧 Configuring Kafka Consumer");
-
+        log.info("🔧 Configuring Kafka Consumer → group={}, bootstrap-servers={}",
+                groupId, bootstrapServers);
         Map<String, Object> config = new HashMap<>();
         config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         config.put(ConsumerConfig.GROUP_ID_CONFIG, "auth-user-service-group");
