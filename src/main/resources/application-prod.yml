@@ -1,5 +1,4 @@
 server:
-  # Local: 8081, Cloud Run: injected ${PORT}
   port: ${PORT:8081}
 
 spring:
@@ -19,8 +18,7 @@ spring:
     # REDIS (CACHE / SESSION)
     # ===========================
     redis:
-      # Same Redis as gateway
-      host: ${REDIS_HOST:10.128.0.4}
+      host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
       timeout: ${REDIS_TIMEOUT:5000ms}
@@ -36,32 +34,29 @@ spring:
           max-wait: 1000ms
 
   # ===========================
-  # KAFKA (SELF-HOSTED / CONFLUENT)
+  # KAFKA
   # ===========================
   kafka:
-    # Set KAFKA_ENABLED=false until Kafka is fully working
-    enabled: ${KAFKA_ENABLED:false}
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:10.128.0.4:9092}
-
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
       group-id: ${KAFKA_CONSUMER_GROUP_ID:auth-user-service-group}
       auto-offset-reset: latest
       enable-auto-commit: false
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      session-timeout-ms: 60000
-      heartbeat-interval-ms: 20000
-      max-poll-interval-ms: 300000
-      max-poll-records: 10
-
+      properties:
+        session.timeout.ms: 60000
+        heartbeat.interval.ms: 20000
+        max.poll.interval.ms: 300000
+        max.poll.records: 10
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
       acks: all
       retries: 3
-      retry-backoff-ms: 1000
-      max-in-flight-requests-per-connection: 1
-
+      properties:
+        retry.backoff.ms: 1000
+        max.in.flight.requests.per.connection: 1
     properties:
       security.protocol: ${KAFKA_SECURITY_PROTOCOL:PLAINTEXT}
       request.timeout.ms: 30000
@@ -86,15 +81,13 @@ eureka:
     register-with-eureka: true
     fetch-registry: true
     service-url:
-      # Override via EUREKA_URL on Cloud Run
       defaultZone: ${EUREKA_URL:https://educonservicediscovery-64307221061.asia-south1.run.app/eureka/}
-    registry-fetch-interval-seconds: 30
+    registry-fetch-interval-seconds: 15
 
   instance:
-    # In Cloud Run set: EUREKA_INSTANCE_HOSTNAME=educonauthservice-64307221061.asia-south1.run.app
     hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
-    prefer-ip-address: ${EUREKA_PREFER_IP_ADDRESS:false}
-    instance-id: ${spring.application.name}:${random.value}
+    prefer-ip-address: false
+    instance-id: ${EUREKA_INSTANCE_HOSTNAME:localhost}:${server.port}
     non-secure-port-enabled: false
     secure-port-enabled: true
     secure-port: 443
@@ -127,7 +120,7 @@ services:
     url: ${LEARNING_SERVICE_URL:http://localhost:8084}
 
 # ===========================
-# LOGGING & MANAGEMENT
+# LOGGING
 # ===========================
 logging:
   level:
@@ -141,6 +134,9 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
+# ===========================
+# MANAGEMENT
+# ===========================
 management:
   endpoints:
     web:
