@@ -14,15 +14,10 @@ public interface StudentRepository extends MongoRepository<StudentProfile, Strin
 
     List<StudentProfile> findByGradeLevel(String gradeLevel);
 
-    // MUST HAVE THIS METHOD
     List<StudentProfile> findByInterestsContaining(String interest);
 
     List<StudentProfile> findBySchoolName(String schoolName);
 
-            ;
+    // one parent per student
     List<StudentProfile> findByParentId(String parentId);
-
-    // Or if you use parentIds list instead
-    List<StudentProfile> findByParentIdsContaining(String parentId);
-
 }
