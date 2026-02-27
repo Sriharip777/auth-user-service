@@ -91,7 +91,17 @@ public class StudentService {
     }
 
     // ADD THIS METHOD
+    // StudentService.java
+
     public List<StudentDto> getStudentsByParentId(String parentId) {
+        // used by other services (e.g., messaging) – keep as‑is
+        return studentRepository.findByParentId(parentId).stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
+    // New: for dashboards / UI (with firstName/lastName)
+    public List<StudentDto> getStudentsByParentIdWithDetails(String parentId) {
         return studentRepository.findByParentId(parentId).stream()
                 .map(profile -> toDtoWithUserDetails(profile, profile.getUserId()))
                 .collect(Collectors.toList());
