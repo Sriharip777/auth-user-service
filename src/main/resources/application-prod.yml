@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: AUTH-USER-SERVICE
+     name: AUTH-USER-SERVICE
 
   data:
     mongodb:
