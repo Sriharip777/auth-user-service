@@ -14,24 +14,17 @@ public class ParentStudentLinkService {
 
     private final StudentRepository studentRepository;
 
-    // Parent -> child student userIds
     public List<String> getChildIdsForParent(String parentId) {
-        List<StudentProfile> children = studentRepository.findByParentId(parentId);
-        if (children == null || children.isEmpty()) {
-            return Collections.emptyList();
-        }
-        return children.stream()
-                .map(StudentProfile::getUserId)  // messaging uses userId
-                .distinct()
+        return studentRepository.findByParentId(parentId)
+                .stream()
+                .map(StudentProfile::getId)
                 .toList();
     }
 
-    // Student userId -> parentIds (currently single parentId field)
-    public List<String> getParentIdsForStudent(String studentUserId) {
-        return studentRepository.findByUserId(studentUserId)
-                .map(profile -> profile.getParentId() == null
-                        ? Collections.<String>emptyList()
-                        : List.of(profile.getParentId()))
-                .orElse(Collections.emptyList());
+    public List<String> getParentIdsForStudent(String studentId) {
+        return studentRepository.findById(studentId)
+                .map(StudentProfile::getParentId)
+                .map(List::of)
+                .orElseGet(List::of);
     }
 }

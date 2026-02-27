@@ -41,7 +41,7 @@ public class StudentProfile {
 
     // Changed from goals to parentId
     private String parentId;
-
+    // single parent
     // Added enrolledCourses
     @Builder.Default
     private List<String> enrolledCourses = new ArrayList<>();
