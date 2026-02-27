@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-     name: AUTH-USER-SERVICE
+    name: AUTH-USER-SERVICE
 
   data:
     mongodb:
@@ -12,7 +12,7 @@ spring:
       auto-index-creation: true
 
     redis:
-      host: ${REDIS_HOST}
+      host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
       timeout: ${REDIS_TIMEOUT:5000ms}
@@ -28,7 +28,7 @@ spring:
           max-wait: 1000ms
 
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
       group-id: ${KAFKA_CONSUMER_GROUP_ID:auth-user-service-group}
       auto-offset-reset: latest
@@ -66,13 +66,13 @@ eureka:
     register-with-eureka: true
     fetch-registry: true
     service-url:
-      defaultZone: ${EUREKA_URL}
+      defaultZone: ${EUREKA_URL:https://educonservicediscovery-64307221061.asia-south1.run.app/eureka/}
     registry-fetch-interval-seconds: 15
 
   instance:
-    hostname: ${EUREKA_INSTANCE_HOSTNAME}
-    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:false}
-    instance-id: ${EUREKA_INSTANCE_HOSTNAME}:${PORT:8081}
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+    prefer-ip-address: false
+    instance-id: ${EUREKA_INSTANCE_HOSTNAME:localhost}:${server.port}
     non-secure-port-enabled: false
     secure-port-enabled: true
     secure-port: 443
@@ -83,7 +83,7 @@ eureka:
     lease-expiration-duration-in-seconds: 30
 
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:my-super-secret-jwt-key-for-educonnect-platform-minimum-256-bits-required}
   expiration: ${JWT_EXPIRATION:86400000}
   refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
 
@@ -93,13 +93,13 @@ app:
   password-reset:
     token-expiration: 3600000
   frontend:
-    url: ${FRONTEND_URL}
+    url: ${FRONTEND_URL:http://localhost:5173}
 
 services:
   notification:
-    url: ${NOTIFICATION_SERVICE_URL}
+    url: ${NOTIFICATION_SERVICE_URL:http://localhost:8085}
   learning:
-    url: ${LEARNING_SERVICE_URL}
+    url: ${LEARNING_SERVICE_URL:http://localhost:8084}
 
 logging:
   level:
@@ -121,3 +121,8 @@ management:
   endpoint:
     health:
       show-details: always
+
+
+
+
+
