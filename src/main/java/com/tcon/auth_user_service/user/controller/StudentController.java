@@ -80,25 +80,5 @@ public class StudentController {
         return ResponseEntity.ok(students);
     }
 
-    // new endpoint for UI
-    @GetMapping("/by-parent/{parentId}/details")
-    @PreAuthorize("hasAnyRole('PARENT', 'ADMIN')")
-    public ResponseEntity<List<StudentDto>> getStudentsByParentIdWithDetails(@PathVariable String parentId) {
-        List<StudentDto> students = studentService.getStudentsByParentIdWithDetails(parentId);
-        return ResponseEntity.ok(students);
-    }
-
-    // old – for chat
-    @GetMapping("/api/student/by-parent/{parentId}")
-    public List<StudentDto> getByParent(@PathVariable String parentId) {
-        return studentService.getStudentsByParentId(parentId);
-    }
-
-    // new – for dashboards
-    @GetMapping("/api/student/by-parent/{parentId}/details")
-    public List<StudentDto> getByParentWithDetails(@PathVariable String parentId) {
-        return studentService.getStudentsByParentIdWithDetails(parentId);
-    }
-
 }
 

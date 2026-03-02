@@ -44,6 +44,11 @@ public class TeacherProfile {
     private Boolean isAvailable;
     private String timezone;
 
+    @Builder.Default
+    private boolean offersDemo = true;   // ✅ Teacher demo toggle
+
+    private String demoNotes;            // ✅ e.g. "30min intro session"
+
     @CreatedDate
     private LocalDateTime createdAt;
 
