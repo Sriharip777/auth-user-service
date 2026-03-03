@@ -6,12 +6,17 @@ import com.tcon.auth_user_service.user.dto.TeacherSearchDto;
 import com.tcon.auth_user_service.user.dto.UserProfileDto;
 import com.tcon.auth_user_service.user.entity.TeacherProfile;
 import com.tcon.auth_user_service.user.entity.TeacherVerification;
+import com.tcon.auth_user_service.user.entity.UserStatus; // ✅ ADDED
 import com.tcon.auth_user_service.user.repository.TeacherRepository;
 import com.tcon.auth_user_service.user.repository.TeacherVerificationRepository;
+import com.tcon.auth_user_service.user.repository.UserRepository; // ✅ ADDED
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.Authentication;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,8 +29,11 @@ public class TeacherService {
     private final TeacherRepository teacherRepository;
     private final UserSearchService userSearchService;
     private final TeacherVerificationRepository teacherVerificationRepository;
+    private final UserRepository userRepository; // ✅ ADDED
 
-
+    /* =====================================================
+       CREATE PROFILE
+       ===================================================== */
     @Transactional
     public TeacherDto createProfile(String userId, TeacherDto dto) {
 
@@ -35,7 +43,6 @@ public class TeacherService {
             );
         }
 
-        // 1️⃣ Create teacher profile
         TeacherProfile profile = TeacherProfile.builder()
                 .userId(userId)
                 .bio(dto.getBio())
@@ -53,7 +60,6 @@ public class TeacherService {
 
         TeacherProfile savedProfile = teacherRepository.save(profile);
 
-        // 2️⃣ 🔴 AUTO-CREATE VERIFICATION RECORD (THIS WAS MISSING)
         TeacherVerification verification = TeacherVerification.builder()
                 .teacherUserId(userId)
                 .status("PENDING")
@@ -67,16 +73,65 @@ public class TeacherService {
         return toDto(savedProfile);
     }
 
+    /* =====================================================
+       GET PROFILE (AUTO SUSPEND ON REFRESH IF REJECTED)
+       ===================================================== */
     public TeacherDto getProfile(String userId) {
+
         TeacherProfile profile = teacherRepository.findByUserId(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Teacher profile not found for user: " + userId));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Teacher profile not found for user: " + userId)
+                );
+
+        if ("REJECTED".equals(profile.getVerificationStatus())) {
+
+            Authentication authentication = SecurityContextHolder
+                    .getContext()
+                    .getAuthentication();
+
+            String role = authentication.getAuthorities()
+                    .iterator()
+                    .next()
+                    .getAuthority();
+
+            // 🔴 If TEACHER accessing → suspend + block
+            if (role.equals("ROLE_TEACHER")) {
+
+                userRepository.findById(userId).ifPresent(user -> {
+                    if (user.getStatus() != UserStatus.SUSPENDED) {
+                        user.setStatus(UserStatus.SUSPENDED);
+                        userRepository.save(user);
+                        log.warn("🚫 Teacher {} auto-suspended due to rejected verification.", userId);
+                    }
+                });
+
+                throw new AccessDeniedException(
+                        "Your verification was rejected. Account suspended."
+                );
+            }
+
+            // ✅ If ADMIN accessing → allow
+        }
+
+
         return toDto(profile);
     }
 
+    /* =====================================================
+       UPDATE PROFILE (BLOCK REJECTED)
+       ===================================================== */
     @Transactional
     public TeacherDto updateProfile(String userId, TeacherDto dto) {
+
         TeacherProfile profile = teacherRepository.findByUserId(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Teacher profile not found for user: " + userId));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Teacher profile not found for user: " + userId)
+                );
+
+        if ("REJECTED".equals(profile.getVerificationStatus())) {
+            log.warn("❌ Update denied. Teacher {} verification rejected.", userId);
+            throw new AccessDeniedException("Your verification was rejected.");
+        }
 
         profile.setBio(dto.getBio());
         profile.setSubjects(dto.getSubjects());
@@ -88,16 +143,23 @@ public class TeacherService {
         profile.setTimezone(dto.getTimezone());
 
         TeacherProfile updated = teacherRepository.save(profile);
+
         log.info("Teacher profile updated for userId: {}", userId);
+
         return toDto(updated);
     }
 
+    /* =====================================================
+       SEARCH
+       ===================================================== */
     public List<TeacherDto> searchTeachers(TeacherSearchDto searchDto) {
+
         List<TeacherProfile> profiles = teacherRepository.findAll();
 
         return profiles.stream()
                 .filter(p -> searchDto.getSubject() == null ||
-                        p.getSubjects().stream().anyMatch(s -> s.equalsIgnoreCase(searchDto.getSubject())))
+                        p.getSubjects().stream().anyMatch(s ->
+                                s.equalsIgnoreCase(searchDto.getSubject())))
                 .filter(p -> searchDto.getMinRating() == null ||
                         p.getAverageRating() >= searchDto.getMinRating())
                 .filter(p -> searchDto.getMaxHourlyRate() == null ||
@@ -111,34 +173,47 @@ public class TeacherService {
     }
 
     public List<TeacherDto> searchBySubject(String subject) {
-        return teacherRepository.findBySubjectsContainingIgnoreCase(subject).stream()
+        return teacherRepository.findBySubjectsContainingIgnoreCase(subject)
+                .stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
 
     public List<TeacherDto> getTopRatedTeachers() {
-        return teacherRepository.findByAverageRatingGreaterThanEqual(4.5).stream()
+        return teacherRepository.findByAverageRatingGreaterThanEqual(4.5)
+                .stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
 
+    /* =====================================================
+       UPDATE RATING
+       ===================================================== */
     @Transactional
     public void updateRating(String userId, Double newRating) {
+
         TeacherProfile profile = teacherRepository.findByUserId(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Teacher profile not found for user: " + userId));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Teacher profile not found for user: " + userId)
+                );
 
         int totalReviews = profile.getTotalReviews();
         double currentAverage = profile.getAverageRating();
 
-        double newAverage = ((currentAverage * totalReviews) + newRating) / (totalReviews + 1);
+        double newAverage =
+                ((currentAverage * totalReviews) + newRating) / (totalReviews + 1);
 
         profile.setAverageRating(newAverage);
         profile.setTotalReviews(totalReviews + 1);
 
         teacherRepository.save(profile);
+
         log.info("Teacher rating updated for userId: {}. New average: {}", userId, newAverage);
     }
 
+    /* =====================================================
+       DTO MAPPER
+       ===================================================== */
     private TeacherDto toDto(TeacherProfile profile) {
         return TeacherDto.builder()
                 .id(profile.getId())
@@ -157,16 +232,15 @@ public class TeacherService {
                 .build();
     }
 
-    /**
-     * Get complete teacher profile with user details
-     */
+    /* =====================================================
+       COMPLETE PROFILE
+       ===================================================== */
     public TeacherProfileResponseDto getCompleteProfile(String userId) {
+
         log.info("📥 Fetching complete profile for teacher userId: {}", userId);
 
-        // Fetch teacher profile
         TeacherDto teacherProfile = getProfile(userId);
 
-        // Fetch user details
         UserProfileDto userDetails = null;
         try {
             userDetails = userSearchService.getUserById(userId);
@@ -181,6 +255,7 @@ public class TeacherService {
                 .build();
 
         log.info("✅ Complete profile built. DisplayName: {}", response.getDisplayName());
+
         return response;
     }
 }

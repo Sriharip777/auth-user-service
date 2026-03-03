@@ -1,5 +1,4 @@
 package com.tcon.auth_user_service.auth.service;
-
 import com.tcon.auth_user_service.auth.dto.*;
 import com.tcon.auth_user_service.auth.security.JwtTokenProvider;
 import com.tcon.auth_user_service.auth.security.TwoFactorAuthService;
@@ -8,12 +7,13 @@ import com.tcon.auth_user_service.user.entity.User;
 import com.tcon.auth_user_service.user.entity.UserRole;
 import com.tcon.auth_user_service.user.entity.UserStatus;
 import com.tcon.auth_user_service.user.repository.AdminRoleRepository;
+import com.tcon.auth_user_service.user.repository.TeacherRepository;
 import com.tcon.auth_user_service.user.repository.UserRepository;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -35,7 +35,7 @@ public class AuthService {
     private final PasswordResetService passwordResetService;
     private final UserEventPublisher userEventPublisher;
     private final AdminRoleRepository adminRoleRepository;  // ✅ NEW
-
+    private final TeacherRepository teacherRepository;
     // ✅ ADMIN ROLES - Now includes new financial roles
     private static final List<String> ADMIN_ROLES = Arrays.asList(
             "ADMIN",
@@ -92,6 +92,11 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
 
+        // 🔥 BLOCK SUSPENDED / INACTIVE USERS
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new IllegalStateException("Account is suspended or inactive");
+        }
+
         if (user.isAccountLocked()) {
             throw new IllegalStateException(
                     "Account locked until " + user.getLockedUntil());
@@ -101,6 +106,18 @@ public class AuthService {
             user.incrementFailedAttempts();
             userRepository.save(user);
             throw new BadCredentialsException("Invalid email or password");
+        }
+
+        // 🔴 BLOCK REJECTED TEACHERS FROM LOGGING IN (ADDED LOGIC)
+        if (user.getRole() == UserRole.TEACHER) {
+
+            teacherRepository.findByUserId(user.getId())
+                    .ifPresent(profile -> {
+                        if ("REJECTED".equals(profile.getVerificationStatus())) {
+                            throw new AccessDeniedException(
+                                    "Your teacher verification was rejected.");
+                        }
+                    });
         }
 
         user.resetFailedAttempts();
