@@ -55,8 +55,9 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/api/users/contacts",      // ✅ ADD THIS LINE
                                 "/api/users/batch",          // ✅ ADD THIS LINE
-                                "/api/users/{userId}"
-
+                                "/api/users/{userId}",
+                                "/api/parents/*/students",
+                                "/api/students/*/parents"
                         ).permitAll()
 
                         // All other endpoints require authentication

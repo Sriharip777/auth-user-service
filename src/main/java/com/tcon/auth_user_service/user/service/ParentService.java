@@ -5,8 +5,10 @@ import com.tcon.auth_user_service.user.entity.ParentProfile;
 import com.tcon.auth_user_service.user.repository.ParentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 @Slf4j
 @Service
@@ -34,10 +36,13 @@ public class ParentService {
         return toDto(saved);
     }
 
+    // ParentService.java
     public ParentDto getProfile(String userId) {
-        ParentProfile profile = parentRepository.findByUserId(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Parent profile not found for user: " + userId));
-        return toDto(profile);
+        return parentRepository.findByUserId(userId)
+                .map(this::toDto)
+                .orElseThrow(() ->
+                        new ResponseStatusException(HttpStatus.NOT_FOUND,
+                                "Parent profile not found for user: " + userId));
     }
 
     @Transactional

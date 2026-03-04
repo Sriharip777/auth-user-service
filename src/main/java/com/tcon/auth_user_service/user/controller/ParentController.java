@@ -29,9 +29,14 @@ public class ParentController {
     @GetMapping("/profile")
     @PreAuthorize("hasRole('PARENT')")
     public ResponseEntity<ParentDto> getProfile(@AuthenticationPrincipal String userId) {
-        ParentDto profile = parentService.getProfile(userId);
-        return ResponseEntity.ok(profile);
+        try {
+            ParentDto profile = parentService.getProfile(userId);
+            return ResponseEntity.ok(profile);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
     }
+
 
     @PutMapping("/profile")
     @PreAuthorize("hasRole('PARENT')")
@@ -42,4 +47,3 @@ public class ParentController {
         return ResponseEntity.ok(updated);
     }
 }
-
