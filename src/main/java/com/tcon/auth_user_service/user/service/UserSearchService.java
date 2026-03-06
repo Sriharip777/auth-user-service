@@ -8,8 +8,8 @@ import com.tcon.auth_user_service.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -19,65 +19,69 @@ public class UserSearchService {
     private final UserRepository userRepository;
 
     public List<UserProfileDto> searchByRole(UserRole role) {
+
         log.debug("Searching users by role: {}", role);
-        return userRepository.findByRole(role).stream()
+
+        return userRepository.findByRole(role)
+                .stream()
                 .map(this::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<UserProfileDto> searchByStatus(UserStatus status) {
+
         log.debug("Searching users by status: {}", status);
-        return userRepository.findByStatus(status).stream()
+
+        return userRepository.findByStatus(status)
+                .stream()
                 .map(this::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<UserProfileDto> getAllUsers() {
+
         log.debug("Retrieving all users");
-        return userRepository.findAll().stream()
+
+        return userRepository.findAll()
+                .stream()
                 .map(this::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
-    // ✅ ADD THIS NEW METHOD
     public List<UserProfileDto> getUsersByIds(List<String> userIds) {
-        log.info("📦 Fetching {} users by IDs", userIds.size());
 
-        List<User> users = userRepository.findAllById(userIds);
-        log.info("✅ Found {} users in database", users.size());
+        log.info("Fetching {} users by IDs", userIds.size());
 
-        return users.stream()
+        return userRepository.findAllById(userIds)
+                .stream()
                 .map(this::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public UserProfileDto getUserById(String userId) {
-        log.debug("Retrieving user by ID: {}", userId);
+
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> {
-                    log.error("User not found with ID: {}", userId);
-                    return new IllegalArgumentException("User not found: " + userId);
-                });
+                .orElseThrow(() ->
+                        new IllegalArgumentException("User not found: " + userId));
+
         return toDto(user);
     }
 
     public UserProfileDto getUserByEmail(String email) {
-        log.debug("Retrieving user by email: {}", email);
+
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> {
-                    log.error("User not found with email: {}", email);
-                    return new IllegalArgumentException("User not found with email: " + email);
-                });
+                .orElseThrow(() ->
+                        new IllegalArgumentException("User not found with email: " + email));
+
         return toDto(user);
     }
 
     public UserProfileDto getUserByPhoneNumber(String phoneNumber) {
-        log.debug("Retrieving user by phone number: {}", phoneNumber);
+
         User user = userRepository.findByPhoneNumber(phoneNumber)
-                .orElseThrow(() -> {
-                    log.error("User not found with phone number: {}", phoneNumber);
-                    return new IllegalArgumentException("User not found with phone number: " + phoneNumber);
-                });
+                .orElseThrow(() ->
+                        new IllegalArgumentException("User not found with phone number: " + phoneNumber));
+
         return toDto(user);
     }
 
@@ -90,12 +94,12 @@ public class UserSearchService {
     }
 
     private UserProfileDto toDto(User user) {
+
         return UserProfileDto.builder()
                 .id(user.getId())
                 .email(user.getEmail())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
-                // Remove .fullName(user.getFullName()) - it's computed in DTO
                 .phoneNumber(user.getPhoneNumber())
                 .role(user.getRole())
                 .status(user.getStatus())
@@ -106,7 +110,5 @@ public class UserSearchService {
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();
-
     }
-
 }

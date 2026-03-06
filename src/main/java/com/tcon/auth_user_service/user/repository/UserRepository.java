@@ -26,7 +26,6 @@ public interface UserRepository extends MongoRepository<User, String> {
 
     boolean existsByPhoneNumber(String phoneNumber);
 
-    // Add this missing method
     List<User> findByRole(UserRole role);
 
     List<User> findByStatus(UserStatus status);
@@ -35,7 +34,6 @@ public interface UserRepository extends MongoRepository<User, String> {
 
     List<User> findByLockedUntilBefore(LocalDateTime now);
 
-    // Advanced search queries
     @Query("{'firstName': {$regex: ?0, $options: 'i'}}")
     List<User> searchByFirstName(String firstName);
 

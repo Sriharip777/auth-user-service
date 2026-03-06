@@ -7,40 +7,17 @@ spring:
 
   data:
     mongodb:
-      uri: mongodb+srv://educonnect:educonnect123@educonnect.sjmtr4c.mongodb.net/educonnect?appName=educonnect&connectTimeoutMS=20000&socketTimeoutMS=30000&serverSelectionTimeoutMS=30000
+      uri: mongodb+srv://educonnect:educonnect123@educonnect.sjmtr4c.mongodb.net/educonnect
       database: educonnect
       auto-index-creation: true
 
-    redis:
-      host: redis-15043.c1.us-central1-2.gce.cloud.redislabs.com
-      port: 15043
-      password: Redies@123
-      timeout: 6000ms
-      database: 0
-      ssl:
-        enabled: true
-      lettuce:
-        pool:
-          max-active: 10
-          max-idle: 5
-          min-idle: 2
-
-  kafka:
-    enabled: true
-
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
-      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
-
 eureka:
   client:
-    enabled: true
     service-url:
       defaultZone: http://localhost:8761/eureka/
-    registry-fetch-interval-seconds: 5
     register-with-eureka: true
     fetch-registry: true
+
   instance:
     prefer-ip-address: true
     instance-id: ${spring.application.name}:${server.port}
@@ -50,48 +27,20 @@ jwt:
   expiration: 86400000
   refresh-expiration: 604800000
 
-app:
-  two-factor:
-    enabled: true
-  password-reset:
-    token-expiration: 3600000
-  frontend:
-    url: http://localhost:5173
-
 services:
   notification:
     url: http://localhost:8085
-
   learning:
     url: http://localhost:8084
 
-
-
+app:
+  password-reset:
+    token-expiration: 3600000
+  two-factor:
+    enabled: true
+  frontend:
+    url: http://localhost:5173
 
 logging:
   level:
     root: INFO
-    com.tcon.api_gateway: DEBUG
-    org.springframework.cloud.gateway: INFO
-    org.springframework.cloud.gateway.handler.RoutePredicateHandlerMapping: DEBUG
-    org.springframework.cloud.loadbalancer: WARN
-    io.github.resilience4j: INFO
-    reactor.netty: WARN
-    io.netty: ERROR
-    org.springframework.data.redis: INFO
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-    # ✅ DISABLED: No file logging = No git conflicts!
-  # file:  # <-- COMMENTED OUT
-  #   name: logs/api-gateway.log
-  #   max-size: 10MB
-  #   max-history: 30
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
-  endpoint:
-    health:
-      show-details: always

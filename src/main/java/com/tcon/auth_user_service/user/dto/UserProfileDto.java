@@ -1,7 +1,5 @@
 package com.tcon.auth_user_service.user.dto;
 
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.tcon.auth_user_service.user.entity.UserRole;
 import com.tcon.auth_user_service.user.entity.UserStatus;
 import lombok.AllArgsConstructor;
@@ -31,11 +29,14 @@ public class UserProfileDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // Computed field - not stored, generated on the fly
     public String getFullName() {
+
         if (firstName == null && lastName == null) {
             return email;
         }
-        return (firstName != null ? firstName : "") + " " + (lastName != null ? lastName : "");
+
+        return (firstName != null ? firstName : "")
+                + " "
+                + (lastName != null ? lastName : "");
     }
 }
