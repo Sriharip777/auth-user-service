@@ -9,7 +9,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.tcon.auth_user_service.user.service.StudentWishlistService;
 import org.springframework.web.bind.annotation.*;
+
 
 import java.util.Collections;
 import java.util.List;
@@ -21,6 +23,7 @@ import java.util.List;
 public class StudentController {
 
     private final StudentService studentService;
+    private final StudentWishlistService studentWishlistService;
 
     // ──────────────────────────────────────────────────────────────
     // Create student profile
@@ -133,5 +136,29 @@ public class StudentController {
             log.error("❌ Error fetching student details for parent {}: {}", parentId, e.getMessage());
             return ResponseEntity.ok(Collections.emptyList());
         }
+    }
+    // ──────────────────────────────────────────────────────────────
+    // Wishlist: toggle
+    // ──────────────────────────────────────────────────────────────
+    @PostMapping("/wishlist/{courseId}/toggle")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<Boolean> toggleWishlist(
+            @AuthenticationPrincipal String userId,
+            @PathVariable String courseId
+    ) {
+        boolean nowWishlisted = studentWishlistService.toggleWishlist(userId, courseId);
+        return ResponseEntity.ok(nowWishlisted);
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Wishlist: get my courseIds
+    // ──────────────────────────────────────────────────────────────
+    @GetMapping("/wishlist")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<List<String>> getMyWishlist(
+            @AuthenticationPrincipal String userId
+    ) {
+        List<String> courseIds = studentWishlistService.getWishlistCourseIds(userId);
+        return ResponseEntity.ok(courseIds);
     }
 }
