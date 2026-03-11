@@ -1,4 +1,5 @@
 package com.tcon.auth_user_service.config;
+
 import com.tcon.auth_user_service.auth.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,41 +31,45 @@ public class SecurityConfig {
         log.info("Configuring Security Filter Chain");
 
         http
-                // Disable CSRF for stateless REST API
                 .csrf(AbstractHttpConfigurer::disable)
-
-                // Configure session management - stateless for JWT
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-
-                // Configure authorization rules
                 .authorizeHttpRequests(auth -> auth
-                        // Public endpoints - no authentication required
                         .requestMatchers(
+                                // Auth public endpoints
                                 "/api/auth/register",
                                 "/api/auth/login",
                                 "/api/auth/password/reset-request",
                                 "/api/auth/password/reset",
                                 "/api/auth/refresh-token",
                                 "/api/auth/health",
+
+                                // Actuator and system
                                 "/actuator/**",
                                 "/error",
+
+                                // Swagger
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
-                                "/api/users/contacts",      // ✅ ADD THIS LINE
-                                "/api/users/batch",          // ✅ ADD THIS LINE
-                                "/api/users/{userId}",
-                                "/api/parents/*/students",
-                                "/api/students/*/parents"
+
+                                // User service internal endpoints
+                                "/api/users/contacts",
+                                "/api/users/batch",
+                                "/api/users/**",       // FIX: replaces /api/users/{userId}
+
+                                // Parent and student cross-lookup endpoints
+                                "/api/parents/**",     // FIX: replaces /api/parents/*/students
+                                "/api/students/**",    // FIX: replaces /api/students/*/parents
+
+                                // Teacher endpoints (internal service calls)
+                                "/api/teachers/**"
                         ).permitAll()
 
                         // All other endpoints require authentication
                         .anyRequest().authenticated()
                 )
-
-                // Add JWT authentication filter before Spring Security's default filter
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         log.info("Security Filter Chain configured successfully");
@@ -73,13 +78,11 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        log.info("Creating BCryptPasswordEncoder bean");
-        return new BCryptPasswordEncoder(12); // Strength 12 for better security
+        return new BCryptPasswordEncoder(12);
     }
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        log.info("Creating AuthenticationManager bean");
         return config.getAuthenticationManager();
     }
 }
