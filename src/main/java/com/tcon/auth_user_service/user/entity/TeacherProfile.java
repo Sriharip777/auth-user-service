@@ -35,6 +35,9 @@ public class TeacherProfile {
     private Double hourlyRate;
 
     @Builder.Default
+    private Integer profileCompletion = 0;
+
+    @Builder.Default
     private Double averageRating = 0.0;
 
     @Builder.Default

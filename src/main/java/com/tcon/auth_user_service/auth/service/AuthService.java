@@ -59,6 +59,14 @@ public class AuthService {
             throw new IllegalArgumentException("Phone number already in use");
         }
 
+        // ✅ Set status based on role
+        UserStatus initialStatus;
+        if (request.getRole() == UserRole.TEACHER) {
+            initialStatus = UserStatus.PENDING_VERIFICATION; // or whatever enum value you use
+        } else {
+            initialStatus = UserStatus.ACTIVE;
+        }
+
         User user = User.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
@@ -66,7 +74,7 @@ public class AuthService {
                 .lastName(request.getLastName())
                 .phoneNumber(request.getPhoneNumber())
                 .role(request.getRole())
-                .status(UserStatus.ACTIVE)
+                .status(initialStatus)            // ✅ use initialStatus
                 .emailVerified(false)
                 .twoFactorEnabled(false)
                 .failedLoginAttempts(0)
@@ -82,6 +90,7 @@ public class AuthService {
 
         return buildTokenResponse(savedUser);
     }
+
 
     /**
      * Login user (2FA-aware)

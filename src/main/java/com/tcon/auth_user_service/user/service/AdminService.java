@@ -10,8 +10,10 @@ import com.tcon.auth_user_service.user.repository.AdminRepository;
 import com.tcon.auth_user_service.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -53,6 +55,23 @@ public class AdminService {
         return userRepository.findAll().stream()
                 .map(this::toUserDto)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public AdminDto updateProfile(String userId, AdminDto dto) {
+        AdminProfile profile = adminRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Admin profile not found for user: " + userId
+                ));
+
+        profile.setRoleDescription(dto.getRoleDescription());
+        profile.setSuperAdmin(dto.getSuperAdmin() != null ? dto.getSuperAdmin() : profile.getSuperAdmin());
+        profile.setPermissions(dto.getPermissions());
+        profile.setDepartment(dto.getDepartment());
+
+        AdminProfile saved = adminRepository.save(profile);
+        return toDto(saved);
     }
 
     @Transactional

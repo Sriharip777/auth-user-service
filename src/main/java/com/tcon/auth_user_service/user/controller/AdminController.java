@@ -46,6 +46,16 @@ public class AdminController {
         return ResponseEntity.ok(adminService.getProfile(userId));
     }
 
+    @PutMapping("/profile")
+    public ResponseEntity<AdminDto> updateProfile(
+            @AuthenticationPrincipal String userId,
+            @Valid @RequestBody AdminDto dto
+    ) {
+        log.info("[AdminController] Updating admin profile for userId={}", userId);
+        return ResponseEntity.ok(adminService.updateProfile(userId, dto));
+    }
+
+
     /* =====================================================
        USER MANAGEMENT
        ===================================================== */

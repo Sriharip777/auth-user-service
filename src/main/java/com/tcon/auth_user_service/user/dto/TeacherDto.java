@@ -1,12 +1,10 @@
 package com.tcon.auth_user_service.user.dto;
-
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
 import java.util.List;
 
 @Data
@@ -40,4 +38,5 @@ public class TeacherDto {
     private String verificationStatus;
     private Boolean isAvailable;
     private String timezone;
+    private Integer profileCompletion;
 }

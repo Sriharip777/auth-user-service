@@ -57,7 +57,7 @@ public class TeacherService {
                 .isAvailable(true)
                 .timezone(dto.getTimezone())
                 .build();
-
+        profile.setProfileCompletion(calculateProfileCompletion(profile));
         TeacherProfile savedProfile = teacherRepository.save(profile);
 
         TeacherVerification verification = TeacherVerification.builder()
@@ -229,6 +229,7 @@ public class TeacherService {
                 .verificationStatus(profile.getVerificationStatus())
                 .isAvailable(profile.getIsAvailable())
                 .timezone(profile.getTimezone())
+                .profileCompletion(profile.getProfileCompletion())
                 .build();
     }
 
@@ -257,5 +258,20 @@ public class TeacherService {
         log.info("✅ Complete profile built. DisplayName: {}", response.getDisplayName());
 
         return response;
+    }
+
+    private int calculateProfileCompletion(TeacherProfile profile) {
+        int score = 0;
+        int maxScore = 5; // tune as you want
+
+        if (profile.getBio() != null && !profile.getBio().isBlank()) score++;
+        if (profile.getQualifications() != null && !profile.getQualifications().isBlank()) score++;
+        if (profile.getHourlyRate() != null && profile.getHourlyRate() > 0) score++;
+        if (profile.getIsAvailable() != null) score++;
+        // if you later add teachingAreas and want to include it:
+        // if (profile.getTeachingAreas() != null && !profile.getTeachingAreas().isEmpty()) score++;
+
+        double percentage = ((double) score / maxScore) * 100;
+        return (int) Math.round(percentage);
     }
 }
