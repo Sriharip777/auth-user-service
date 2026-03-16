@@ -39,4 +39,5 @@ public class TeacherDto {
     private Boolean isAvailable;
     private String timezone;
     private Integer profileCompletion;
+    private List<TeachingAreaDto> teachingAreas;
 }

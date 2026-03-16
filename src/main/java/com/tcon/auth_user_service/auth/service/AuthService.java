@@ -3,12 +3,11 @@ import com.tcon.auth_user_service.auth.dto.*;
 import com.tcon.auth_user_service.auth.security.JwtTokenProvider;
 import com.tcon.auth_user_service.auth.security.TwoFactorAuthService;
 import com.tcon.auth_user_service.event.UserEventPublisher;
+import com.tcon.auth_user_service.user.entity.TeacherVerification;
 import com.tcon.auth_user_service.user.entity.User;
 import com.tcon.auth_user_service.user.entity.UserRole;
 import com.tcon.auth_user_service.user.entity.UserStatus;
-import com.tcon.auth_user_service.user.repository.AdminRoleRepository;
-import com.tcon.auth_user_service.user.repository.TeacherRepository;
-import com.tcon.auth_user_service.user.repository.UserRepository;
+import com.tcon.auth_user_service.user.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -36,6 +35,7 @@ public class AuthService {
     private final UserEventPublisher userEventPublisher;
     private final AdminRoleRepository adminRoleRepository;  // ✅ NEW
     private final TeacherRepository teacherRepository;
+    private final TeacherVerificationRepository teacherVerificationRepository;
     // ✅ ADMIN ROLES - Now includes new financial roles
     private static final List<String> ADMIN_ROLES = Arrays.asList(
             "ADMIN",
@@ -86,12 +86,21 @@ public class AuthService {
         User savedUser = userRepository.save(user);
         userEventPublisher.publishUserCreated(savedUser);
 
+        if (request.getRole() == UserRole.TEACHER) {
+            TeacherVerification verification = TeacherVerification.builder()
+                    .teacherUserId(savedUser.getId())
+                    .status("PENDING")
+                    .documentUrls(List.of())
+                    .build();
+
+            teacherVerificationRepository.save(verification);
+            log.info("✅ TeacherVerification auto-created for: {}", savedUser.getId());
+        }
+
         log.info("User registered: {} ({})", savedUser.getEmail(), savedUser.getRole());
 
         return buildTokenResponse(savedUser);
-    }
-
-
+    }  // ✅ THIS CLOSING BRACE WAS MISSING — closes register()
     /**
      * Login user (2FA-aware)
      */
@@ -101,10 +110,12 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
 
-        // 🔥 BLOCK SUSPENDED / INACTIVE USERS
-        if (user.getStatus() != UserStatus.ACTIVE) {
+        if (user.getStatus() == UserStatus.SUSPENDED ||
+                user.getStatus() == UserStatus.BANNED ||
+                user.getStatus() == UserStatus.DELETED) {
             throw new IllegalStateException("Account is suspended or inactive");
         }
+
 
         if (user.isAccountLocked()) {
             throw new IllegalStateException(

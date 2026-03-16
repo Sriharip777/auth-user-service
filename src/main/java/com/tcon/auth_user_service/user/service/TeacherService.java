@@ -1,15 +1,11 @@
 package com.tcon.auth_user_service.user.service;
 
-import com.tcon.auth_user_service.user.dto.TeacherDto;
-import com.tcon.auth_user_service.user.dto.TeacherProfileResponseDto;
-import com.tcon.auth_user_service.user.dto.TeacherSearchDto;
-import com.tcon.auth_user_service.user.dto.UserProfileDto;
+import com.tcon.auth_user_service.user.dto.*;
 import com.tcon.auth_user_service.user.entity.TeacherProfile;
-import com.tcon.auth_user_service.user.entity.TeacherVerification;
-import com.tcon.auth_user_service.user.entity.UserStatus; // ✅ ADDED
+import com.tcon.auth_user_service.user.entity.UserStatus;
 import com.tcon.auth_user_service.user.repository.TeacherRepository;
 import com.tcon.auth_user_service.user.repository.TeacherVerificationRepository;
-import com.tcon.auth_user_service.user.repository.UserRepository; // ✅ ADDED
+import com.tcon.auth_user_service.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
@@ -17,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.Authentication;
+import com.tcon.auth_user_service.user.entity.TeachingArea;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -56,21 +53,24 @@ public class TeacherService {
                 .verificationStatus("PENDING")
                 .isAvailable(true)
                 .timezone(dto.getTimezone())
+                .teachingAreas(mapTeachingAreas(dto.getTeachingAreas()))
                 .build();
         profile.setProfileCompletion(calculateProfileCompletion(profile));
         TeacherProfile savedProfile = teacherRepository.save(profile);
 
-        TeacherVerification verification = TeacherVerification.builder()
-                .teacherUserId(userId)
-                .status("PENDING")
-                .documentUrls(List.of())
-                .build();
-
-        teacherVerificationRepository.save(verification);
-
-        log.info("✅ Teacher profile + verification created for userId: {}", userId);
 
         return toDto(savedProfile);
+    }
+
+    private List<TeachingArea> mapTeachingAreas(List<TeachingAreaDto> dtos) {
+        if (dtos == null) return List.of();
+        return dtos.stream()
+                .map(a -> TeachingArea.builder()
+                        .grade(a.getGrade())
+                        .subject(a.getSubject())
+                        .topics(a.getTopics())
+                        .build())
+                .toList();
     }
 
     /* =====================================================
@@ -121,33 +121,35 @@ public class TeacherService {
        UPDATE PROFILE (BLOCK REJECTED)
        ===================================================== */
     @Transactional
-    public TeacherDto updateProfile(String userId, TeacherDto dto) {
+    public TeacherDto updateProfile(String userId, UpdateTeacherRequest dto) {
 
         TeacherProfile profile = teacherRepository.findByUserId(userId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("Teacher profile not found for user: " + userId)
-                );
+                .orElseThrow(() -> new IllegalArgumentException("Teacher profile not found"));
 
         if ("REJECTED".equals(profile.getVerificationStatus())) {
-            log.warn("❌ Update denied. Teacher {} verification rejected.", userId);
             throw new AccessDeniedException("Your verification was rejected.");
         }
 
-        profile.setBio(dto.getBio());
-        profile.setSubjects(dto.getSubjects());
-        profile.setLanguages(dto.getLanguages());
-        profile.setYearsOfExperience(dto.getYearsOfExperience());
-        profile.setQualifications(dto.getQualifications());
-        profile.setHourlyRate(dto.getHourlyRate());
-        profile.setIsAvailable(dto.getIsAvailable());
-        profile.setTimezone(dto.getTimezone());
+        // ✅ Only update fields that are non-null (partial update)
+        if (dto.getBio() != null) profile.setBio(dto.getBio());
+        if (dto.getSubjects() != null) profile.setSubjects(dto.getSubjects());
+        if (dto.getLanguages() != null) profile.setLanguages(dto.getLanguages());
+        if (dto.getYearsOfExperience() != null) profile.setYearsOfExperience(dto.getYearsOfExperience());
+        if (dto.getQualifications() != null) profile.setQualifications(dto.getQualifications());
+        if (dto.getHourlyRate() != null) profile.setHourlyRate(dto.getHourlyRate());
+        if (dto.getIsAvailable() != null) profile.setIsAvailable(dto.getIsAvailable());
+        if (dto.getTimezone() != null) profile.setTimezone(dto.getTimezone());
+        // ✅ Always update teachingAreas if provided (even empty list = clear all)
+        if (dto.getTeachingAreas() != null) {
+            profile.setTeachingAreas(mapTeachingAreas(dto.getTeachingAreas()));
+        }
 
+        profile.setProfileCompletion(calculateProfileCompletion(profile));
         TeacherProfile updated = teacherRepository.save(profile);
-
-        log.info("Teacher profile updated for userId: {}", userId);
-
+        log.info("✅ Teacher profile updated for userId: {}", userId);
         return toDto(updated);
     }
+
 
     /* =====================================================
        SEARCH
@@ -230,6 +232,16 @@ public class TeacherService {
                 .isAvailable(profile.getIsAvailable())
                 .timezone(profile.getTimezone())
                 .profileCompletion(profile.getProfileCompletion())
+                .teachingAreas(
+                        profile.getTeachingAreas() == null ? List.of() :
+                                profile.getTeachingAreas().stream()
+                                        .map(a -> TeachingAreaDto.builder()
+                                                .grade(a.getGrade())
+                                                .subject(a.getSubject())
+                                                .topics(a.getTopics())
+                                                .build())
+                                        .toList()
+                )
                 .build();
     }
 
@@ -268,9 +280,7 @@ public class TeacherService {
         if (profile.getQualifications() != null && !profile.getQualifications().isBlank()) score++;
         if (profile.getHourlyRate() != null && profile.getHourlyRate() > 0) score++;
         if (profile.getIsAvailable() != null) score++;
-        // if you later add teachingAreas and want to include it:
-        // if (profile.getTeachingAreas() != null && !profile.getTeachingAreas().isEmpty()) score++;
-
+        if (profile.getTeachingAreas() != null && !profile.getTeachingAreas().isEmpty()) score++;
         double percentage = ((double) score / maxScore) * 100;
         return (int) Math.round(percentage);
     }

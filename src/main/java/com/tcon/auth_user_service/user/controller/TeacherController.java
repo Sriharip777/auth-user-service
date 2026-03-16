@@ -4,10 +4,13 @@ import com.tcon.auth_user_service.client.LearningServiceClient;
 import com.tcon.auth_user_service.client.dto.UpdateDemoSettingsRequest;
 import com.tcon.auth_user_service.user.dto.*;
 import com.tcon.auth_user_service.user.entity.TeacherProfile;
+import com.tcon.auth_user_service.user.entity.User;
 import com.tcon.auth_user_service.user.repository.TeacherProfileRepository;
 import com.tcon.auth_user_service.user.repository.TeacherRepository;
+import com.tcon.auth_user_service.user.repository.UserRepository;
 import com.tcon.auth_user_service.user.service.TeacherService;
 import com.tcon.auth_user_service.user.service.TeacherVerificationService;
+import com.tcon.auth_user_service.user.service.UserSearchService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +32,10 @@ public class TeacherController {
     private final TeacherService teacherService;
     private final TeacherProfileRepository teacherProfileRepository;
     private final LearningServiceClient learningServiceClient;
-private  final TeacherVerificationService submitVerification;
+    private  final TeacherVerificationService submitVerification;
+    private final UserRepository userRepository;
+    private final UserSearchService userSearchService;
+
     @PostMapping("/profile")
     @PreAuthorize("hasRole('TEACHER')")
     public ResponseEntity<TeacherDto> createProfile(
@@ -55,18 +61,38 @@ private  final TeacherVerificationService submitVerification;
     // ✅ NEW ENDPOINT: Get complete teacher profile with user details
     @GetMapping("/profile/{userId}/complete")
     public ResponseEntity<TeacherProfileResponseDto> getCompleteProfile(@PathVariable String userId) {
-        TeacherProfileResponseDto completeProfile = teacherService.getCompleteProfile(userId);
-        return ResponseEntity.ok(completeProfile);
+        try {
+            TeacherProfileResponseDto completeProfile = teacherService.getCompleteProfile(userId);
+            return ResponseEntity.ok(completeProfile);
+        } catch (IllegalArgumentException e) {
+            log.warn("⚠️ Teacher profile not found for userId: {}", userId);
+
+            UserProfileDto userDetails = null;
+            try {
+                userDetails = userSearchService.getUserById(userId);  // ✅ instance call now works
+            } catch (Exception ex) {
+                log.warn("⚠️ User not found for userId: {}", userId);
+            }
+
+            TeacherProfileResponseDto partial = TeacherProfileResponseDto.builder()
+                    .teacherProfile(null)
+                    .userDetails(userDetails)
+                    .build();
+
+            return ResponseEntity.ok(partial);
+        }
     }
 
+    // ✅ Change updateProfile endpoint to accept UpdateTeacherRequest
     @PutMapping("/profile")
-    @PreAuthorize("hasRole('TEACHER')")
     public ResponseEntity<TeacherDto> updateProfile(
-            @AuthenticationPrincipal String userId,
-            @Valid @RequestBody TeacherDto dto) {
-        TeacherDto updated = teacherService.updateProfile(userId, dto);
-        return ResponseEntity.ok(updated);
+            @RequestHeader("X-User-Id") String userId,
+            @RequestBody UpdateTeacherRequest request) {
+        return ResponseEntity.ok(teacherService.updateProfile(userId, request));
     }
+
+
+
 
     @PostMapping("/search")
     public ResponseEntity<List<TeacherDto>> searchTeachers(@RequestBody TeacherSearchDto searchDto) {
@@ -94,6 +120,23 @@ private  final TeacherVerificationService submitVerification;
         TeacherVerificationDto created = submitVerification.submitVerification(userId, dto);
         return ResponseEntity.ok(created);
     }
+
+    @GetMapping("/approval-status")
+    public ResponseEntity<Map<String, String>> getApprovalStatus(
+            @RequestHeader("X-User-Id") String userId) {
+
+        TeacherProfile profile = teacherProfileRepository.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Teacher profile not found"));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return ResponseEntity.ok(Map.of(
+                "userStatus", user.getStatus().name(),
+                "verificationStatus", profile.getVerificationStatus()
+        ));
+    }
+
 
     // ✅ NEW: Update demo settings
     @PutMapping("/demo-settings")

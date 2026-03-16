@@ -1,6 +1,4 @@
 package com.tcon.auth_user_service.user.entity;
-
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,6 +10,7 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -42,6 +41,9 @@ public class TeacherProfile {
 
     @Builder.Default
     private Integer totalReviews = 0;
+
+    @Builder.Default
+    private List<TeachingArea> teachingAreas = new ArrayList<>();
 
     private String verificationStatus; // PENDING, VERIFIED, REJECTED
     private Boolean isAvailable;

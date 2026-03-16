@@ -2,8 +2,10 @@ package com.tcon.auth_user_service.user.service;
 
 import com.tcon.auth_user_service.user.dto.TeacherVerificationDto;
 import com.tcon.auth_user_service.user.entity.TeacherVerification;
+import com.tcon.auth_user_service.user.entity.UserStatus;
 import com.tcon.auth_user_service.user.repository.TeacherProfileRepository;
 import com.tcon.auth_user_service.user.repository.TeacherVerificationRepository;
+import com.tcon.auth_user_service.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,7 @@ public class TeacherVerificationService {
 
     private final TeacherVerificationRepository verificationRepository;
     private final TeacherProfileRepository teacherProfileRepository;
+    private final UserRepository userRepository;
 
     /* =====================================================
        TEACHER SUBMITS VERIFICATION
@@ -118,6 +121,14 @@ public class TeacherVerificationService {
         TeacherVerification saved = verificationRepository.save(verification);
 
         updateTeacherProfileStatus(verification.getTeacherUserId(), "VERIFIED");
+
+        //Activate the teacher's User account
+        userRepository.findById(verification.getTeacherUserId()).ifPresent(user -> {
+            user.setStatus(UserStatus.ACTIVE);  // import com.tcon.auth_user_service.user.entity.UserStatus
+            userRepository.save(user);
+            log.info("✅ Teacher {} User.status set to ACTIVE after approval",
+                    verification.getTeacherUserId());
+        });
 
         log.info("✅ Verification approved for teacher: {}", verification.getTeacherUserId());
         return safeMapToDto(saved);
