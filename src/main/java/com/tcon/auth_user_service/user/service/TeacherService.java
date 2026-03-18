@@ -2,18 +2,20 @@ package com.tcon.auth_user_service.user.service;
 
 import com.tcon.auth_user_service.user.dto.*;
 import com.tcon.auth_user_service.user.entity.TeacherProfile;
+import com.tcon.auth_user_service.user.entity.TeacherVerification;
+import com.tcon.auth_user_service.user.entity.TeachingArea;
 import com.tcon.auth_user_service.user.entity.UserStatus;
+import com.tcon.auth_user_service.user.repository.TeacherProfileRepository;
 import com.tcon.auth_user_service.user.repository.TeacherRepository;
 import com.tcon.auth_user_service.user.repository.TeacherVerificationRepository;
 import com.tcon.auth_user_service.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.Authentication;
-import com.tcon.auth_user_service.user.entity.TeachingArea;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,9 +26,10 @@ import java.util.stream.Collectors;
 public class TeacherService {
 
     private final TeacherRepository teacherRepository;
+    private final TeacherProfileRepository teacherProfileRepository;
     private final UserSearchService userSearchService;
     private final TeacherVerificationRepository teacherVerificationRepository;
-    private final UserRepository userRepository; // ✅ ADDED
+    private final UserRepository userRepository;
 
     /* =====================================================
        CREATE PROFILE
@@ -40,6 +43,14 @@ public class TeacherService {
             );
         }
 
+        // 🔹 If admin approved earlier (before profile was created),
+        //     set profile verificationStatus = VERIFIED and activate user.
+        boolean alreadyApproved = teacherVerificationRepository.findByTeacherUserId(userId)
+                .map(v -> "APPROVED".equalsIgnoreCase(v.getStatus()))
+                .orElse(false);
+
+        String verificationStatus = alreadyApproved ? "VERIFIED" : "PENDING";
+
         TeacherProfile profile = TeacherProfile.builder()
                 .userId(userId)
                 .bio(dto.getBio())
@@ -50,14 +61,24 @@ public class TeacherService {
                 .hourlyRate(dto.getHourlyRate())
                 .averageRating(0.0)
                 .totalReviews(0)
-                .verificationStatus("PENDING")
+                .verificationStatus(verificationStatus)
                 .isAvailable(true)
                 .timezone(dto.getTimezone())
                 .teachingAreas(mapTeachingAreas(dto.getTeachingAreas()))
                 .build();
+
         profile.setProfileCompletion(calculateProfileCompletion(profile));
         TeacherProfile savedProfile = teacherRepository.save(profile);
 
+        if (alreadyApproved) {
+            userRepository.findById(userId).ifPresent(user -> {
+                if (user.getStatus() != UserStatus.ACTIVE) {
+                    user.setStatus(UserStatus.ACTIVE);
+                    userRepository.save(user);
+                    log.info("✅ User {} activated because verification was already APPROVED", userId);
+                }
+            });
+        }
 
         return toDto(savedProfile);
     }
@@ -66,8 +87,11 @@ public class TeacherService {
         if (dtos == null) return List.of();
         return dtos.stream()
                 .map(a -> TeachingArea.builder()
+                        .gradeId(a.getGradeId())
                         .grade(a.getGrade())
+                        .subjectId(a.getSubjectId())
                         .subject(a.getSubject())
+                        .topicIds(a.getTopicIds())
                         .topics(a.getTopics())
                         .build())
                 .toList();
@@ -94,8 +118,7 @@ public class TeacherService {
                     .next()
                     .getAuthority();
 
-            // 🔴 If TEACHER accessing → suspend + block
-            if (role.equals("ROLE_TEACHER")) {
+            if ("ROLE_TEACHER".equals(role)) {
 
                 userRepository.findById(userId).ifPresent(user -> {
                     if (user.getStatus() != UserStatus.SUSPENDED) {
@@ -109,10 +132,7 @@ public class TeacherService {
                         "Your verification was rejected. Account suspended."
                 );
             }
-
-            // ✅ If ADMIN accessing → allow
         }
-
 
         return toDto(profile);
     }
@@ -130,7 +150,6 @@ public class TeacherService {
             throw new AccessDeniedException("Your verification was rejected.");
         }
 
-        // ✅ Only update fields that are non-null (partial update)
         if (dto.getBio() != null) profile.setBio(dto.getBio());
         if (dto.getSubjects() != null) profile.setSubjects(dto.getSubjects());
         if (dto.getLanguages() != null) profile.setLanguages(dto.getLanguages());
@@ -139,7 +158,6 @@ public class TeacherService {
         if (dto.getHourlyRate() != null) profile.setHourlyRate(dto.getHourlyRate());
         if (dto.getIsAvailable() != null) profile.setIsAvailable(dto.getIsAvailable());
         if (dto.getTimezone() != null) profile.setTimezone(dto.getTimezone());
-        // ✅ Always update teachingAreas if provided (even empty list = clear all)
         if (dto.getTeachingAreas() != null) {
             profile.setTeachingAreas(mapTeachingAreas(dto.getTeachingAreas()));
         }
@@ -149,7 +167,6 @@ public class TeacherService {
         log.info("✅ Teacher profile updated for userId: {}", userId);
         return toDto(updated);
     }
-
 
     /* =====================================================
        SEARCH
@@ -236,12 +253,28 @@ public class TeacherService {
                         profile.getTeachingAreas() == null ? List.of() :
                                 profile.getTeachingAreas().stream()
                                         .map(a -> TeachingAreaDto.builder()
+                                                .gradeId(a.getGradeId())
                                                 .grade(a.getGrade())
+                                                .subjectId(a.getSubjectId())
                                                 .subject(a.getSubject())
+                                                .topicIds(a.getTopicIds())
                                                 .topics(a.getTopics())
                                                 .build())
                                         .toList()
                 )
+                .build();
+    }
+
+    private TeacherVerificationDto toVerificationDto(TeacherVerification verification) {
+        return TeacherVerificationDto.builder()
+                .id(verification.getId())
+                .teacherUserId(verification.getTeacherUserId())
+                .documentUrls(verification.getDocumentUrls())
+                .status(verification.getStatus())
+                .reviewerUserId(verification.getReviewerUserId())
+                .reviewedAt(verification.getReviewedAt())
+                .createdAt(verification.getCreatedAt())
+                .updatedAt(verification.getUpdatedAt())
                 .build();
     }
 
@@ -274,7 +307,7 @@ public class TeacherService {
 
     private int calculateProfileCompletion(TeacherProfile profile) {
         int score = 0;
-        int maxScore = 5; // tune as you want
+        int maxScore = 5;
 
         if (profile.getBio() != null && !profile.getBio().isBlank()) score++;
         if (profile.getQualifications() != null && !profile.getQualifications().isBlank()) score++;
@@ -284,4 +317,73 @@ public class TeacherService {
         double percentage = ((double) score / maxScore) * 100;
         return (int) Math.round(percentage);
     }
+
+    /* =====================================================
+       ELIGIBLE TEACHERS FOR COURSE
+       ===================================================== */
+    public List<TeacherResponseDto> findEligibleForCourse(
+            String gradeId,
+            String subjectId,
+            List<String> topicIds
+    ) {
+        List<TeacherProfile> profiles = teacherRepository.findAll();
+
+        return profiles.stream()
+                // must be VERIFIED
+                .filter(p -> "VERIFIED".equalsIgnoreCase(p.getVerificationStatus()))
+                // must be available
+                .filter(p -> Boolean.TRUE.equals(p.getIsAvailable()))
+                // must have teaching areas
+                .filter(p -> p.getTeachingAreas() != null && !p.getTeachingAreas().isEmpty())
+                // match by grade/subject/topic (IDs if present, otherwise by names)
+                .filter(p -> p.getTeachingAreas().stream().anyMatch(area -> {
+                    if (area.getGradeId() != null && area.getSubjectId() != null) {
+                        if (!area.getGradeId().equals(gradeId)) return false;
+                        if (!area.getSubjectId().equals(subjectId)) return false;
+
+                        if (topicIds == null || topicIds.isEmpty()) return true;
+                        if (area.getTopicIds() == null || area.getTopicIds().isEmpty()) return false;
+                        return area.getTopicIds().stream().anyMatch(topicIds::contains);
+                    }
+                    if (area.getSubject() == null) return false;
+                    return true;
+                }))
+                .map(p -> {
+                    UserProfileDto userDetails = null;
+                    try {
+                        userDetails = userSearchService.getUserById(p.getUserId());
+                    } catch (Exception e) {
+                        log.warn("Could not fetch user details for teacher userId {}: {}", p.getUserId(), e.getMessage());
+                    }
+
+                    String firstName = null;
+                    String lastName = null;
+
+                    if (userDetails != null) {
+                        firstName = userDetails.getFirstName();
+                        lastName = userDetails.getLastName();
+                    }
+
+                    return TeacherResponseDto.builder()
+                            .id(p.getId())
+                            .userId(p.getUserId())
+                            .firstName(firstName)
+                            .lastName(lastName)
+                            .bio(p.getBio())
+                            .subjects(p.getSubjects())
+                            .languages(p.getLanguages())
+                            .yearsOfExperience(p.getYearsOfExperience())
+                            .qualifications(p.getQualifications())
+                            .hourlyRate(p.getHourlyRate())
+                            .averageRating(p.getAverageRating())
+                            .totalReviews(p.getTotalReviews())
+                            .verificationStatus(p.getVerificationStatus())
+                            .isAvailable(p.getIsAvailable())
+                            .timezone(p.getTimezone())
+                            .build();
+                })
+                .toList();
+    }
+
+    // ✅ NOTE: No approveVerification method here anymore – only in TeacherVerificationService
 }

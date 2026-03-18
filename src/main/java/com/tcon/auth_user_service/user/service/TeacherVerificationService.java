@@ -120,11 +120,18 @@ public class TeacherVerificationService {
 
         TeacherVerification saved = verificationRepository.save(verification);
 
-        updateTeacherProfileStatus(verification.getTeacherUserId(), "VERIFIED");
+        // Sync profile -> VERIFIED
+        teacherProfileRepository.findByUserId(verification.getTeacherUserId())
+                .ifPresent(profile -> {
+                    profile.setVerificationStatus("VERIFIED");
+                    teacherProfileRepository.save(profile);
+                    log.info("✅ Forced teacher profile {} verificationStatus -> VERIFIED",
+                            profile.getUserId());
+                });
 
-        //Activate the teacher's User account
+        // Activate user
         userRepository.findById(verification.getTeacherUserId()).ifPresent(user -> {
-            user.setStatus(UserStatus.ACTIVE);  // import com.tcon.auth_user_service.user.entity.UserStatus
+            user.setStatus(UserStatus.ACTIVE);
             userRepository.save(user);
             log.info("✅ Teacher {} User.status set to ACTIVE after approval",
                     verification.getTeacherUserId());

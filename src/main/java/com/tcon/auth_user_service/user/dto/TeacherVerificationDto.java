@@ -27,5 +27,5 @@ public class TeacherVerificationDto {
     private String rejectionReason;
     private LocalDateTime reviewedAt;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }
-

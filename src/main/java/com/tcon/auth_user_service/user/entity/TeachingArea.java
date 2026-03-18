@@ -12,6 +12,9 @@ import java.util.List;
 @AllArgsConstructor
 public class TeachingArea {
     private String grade;
+    private String gradeId;
     private String subject;
+    private String subjectId;
     private List<String> topics;
+    private List<String> topicIds;
 }

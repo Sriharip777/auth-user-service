@@ -12,7 +12,10 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TeachingAreaDto {
-    private String grade;    // e.g. "GRADE_1"
-    private String subject;  // e.g. "MATH"
+    private String gradeId;
+    private String grade;
+    private String subjectId;
+    private String subject;
+    private List<String> topicIds;
     private List<String> topics;
 }

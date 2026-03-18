@@ -12,6 +12,7 @@ import com.tcon.auth_user_service.user.service.TeacherService;
 import com.tcon.auth_user_service.user.service.TeacherVerificationService;
 import com.tcon.auth_user_service.user.service.UserSearchService;
 import jakarta.validation.Valid;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -182,5 +183,25 @@ public class TeacherController {
                 "demoNotes", profile.getDemoNotes() != null ? profile.getDemoNotes() : ""
         ));
     }
+
+    @Data
+    public static class EligibleTeacherRequest {
+        private String gradeId;
+        private String subjectId;
+        private List<String> topicIds;
+    }
+
+    @PostMapping("/eligible-for-course")
+    public ResponseEntity<List<TeacherResponseDto>> eligibleForCourse(
+            @RequestBody EligibleTeacherRequest req) {
+        return ResponseEntity.ok(
+                teacherService.findEligibleForCourse(
+                        req.getGradeId(),
+                        req.getSubjectId(),
+                        req.getTopicIds()
+                )
+        );
+    }
+
 
 }
