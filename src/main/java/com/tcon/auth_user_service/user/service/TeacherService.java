@@ -327,26 +327,26 @@ public class TeacherService {
             List<String> topicIds
     ) {
         List<TeacherProfile> profiles = teacherRepository.findAll();
+        List<String> safeTopicIds = topicIds != null ? topicIds : List.of();
 
         return profiles.stream()
-                // must be VERIFIED
                 .filter(p -> "VERIFIED".equalsIgnoreCase(p.getVerificationStatus()))
-                // must be available
                 .filter(p -> Boolean.TRUE.equals(p.getIsAvailable()))
-                // must have teaching areas
                 .filter(p -> p.getTeachingAreas() != null && !p.getTeachingAreas().isEmpty())
-                // match by grade/subject/topic (IDs if present, otherwise by names)
                 .filter(p -> p.getTeachingAreas().stream().anyMatch(area -> {
-                    if (area.getGradeId() != null && area.getSubjectId() != null) {
-                        if (!area.getGradeId().equals(gradeId)) return false;
-                        if (!area.getSubjectId().equals(subjectId)) return false;
+                    if (area == null) return false;
+                    if (area.getGradeId() == null || area.getSubjectId() == null) return false;
+                    if (!area.getGradeId().equals(gradeId)) return false;
+                    if (!area.getSubjectId().equals(subjectId)) return false;
 
-                        if (topicIds == null || topicIds.isEmpty()) return true;
-                        if (area.getTopicIds() == null || area.getTopicIds().isEmpty()) return false;
-                        return area.getTopicIds().stream().anyMatch(topicIds::contains);
-                    }
-                    if (area.getSubject() == null) return false;
-                    return true;
+                    // If course has no topics → grade+subject is enough
+                    if (safeTopicIds.isEmpty()) return true;
+
+                    // If teacher has no topicIds for that area → still allow (grade+subject match)
+                    if (area.getTopicIds() == null || area.getTopicIds().isEmpty()) return true;
+
+                    // Otherwise require at least one common topic
+                    return area.getTopicIds().stream().anyMatch(safeTopicIds::contains);
                 }))
                 .map(p -> {
                     UserProfileDto userDetails = null;
@@ -356,12 +356,17 @@ public class TeacherService {
                         log.warn("Could not fetch user details for teacher userId {}: {}", p.getUserId(), e.getMessage());
                     }
 
-                    String firstName = null;
-                    String lastName = null;
+                    String firstName = userDetails != null ? userDetails.getFirstName() : null;
+                    String lastName  = userDetails != null ? userDetails.getLastName() : null;
 
-                    if (userDetails != null) {
-                        firstName = userDetails.getFirstName();
-                        lastName = userDetails.getLastName();
+                    List<String> subjects = p.getSubjects();
+                    if (subjects == null || subjects.isEmpty()) {
+                        subjects = p.getTeachingAreas() == null ? List.of()
+                                : p.getTeachingAreas().stream()
+                                .map(TeachingArea::getSubject)
+                                .filter(s -> s != null && !s.isBlank())
+                                .distinct()
+                                .toList();
                     }
 
                     return TeacherResponseDto.builder()
@@ -370,7 +375,7 @@ public class TeacherService {
                             .firstName(firstName)
                             .lastName(lastName)
                             .bio(p.getBio())
-                            .subjects(p.getSubjects())
+                            .subjects(subjects)
                             .languages(p.getLanguages())
                             .yearsOfExperience(p.getYearsOfExperience())
                             .qualifications(p.getQualifications())
@@ -385,5 +390,4 @@ public class TeacherService {
                 .toList();
     }
 
-    // ✅ NOTE: No approveVerification method here anymore – only in TeacherVerificationService
 }

@@ -1,5 +1,4 @@
 package com.tcon.auth_user_service.user.service;
-
 import com.tcon.auth_user_service.user.dto.TeacherVerificationDto;
 import com.tcon.auth_user_service.user.entity.TeacherVerification;
 import com.tcon.auth_user_service.user.entity.UserStatus;

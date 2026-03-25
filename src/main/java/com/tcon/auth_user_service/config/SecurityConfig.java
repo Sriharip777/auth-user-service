@@ -1,6 +1,7 @@
 package com.tcon.auth_user_service.config;
 
 import com.tcon.auth_user_service.auth.security.JwtAuthenticationFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -28,13 +29,17 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        log.info("Configuring Security Filter Chain");
+        log.info("Configuring Security Filter Chain (auth-user-service)");
 
         http
+                // Stateless REST API
                 .csrf(AbstractHttpConfigurer::disable)
+                // CORS handled at API Gateway; disable here
+                .cors(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
+
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 // Auth public endpoints
@@ -57,19 +62,33 @@ public class SecurityConfig {
                                 // User service internal endpoints
                                 "/api/users/contacts",
                                 "/api/users/batch",
-                                "/api/users/**",       // FIX: replaces /api/users/{userId}
+                                "/api/users/**",
 
-                                // Parent and student cross-lookup endpoints
-                                "/api/parents/**",     // FIX: replaces /api/parents/*/students
-                                "/api/students/**",    // FIX: replaces /api/students/*/parents
+                                // Parent & student cross-lookup endpoints
+                                "/api/parents/**",
+                                "/api/students/**",
 
-                                // Teacher endpoints (internal service calls)
+                                // Teacher endpoints (internal)
                                 "/api/teachers/**"
                         ).permitAll()
-
-                        // All other endpoints require authentication
                         .anyRequest().authenticated()
                 )
+
+                // Return 401 JSON instead of redirecting to /login
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            log.warn("Unauthorized request: {} {}", request.getMethod(), request.getRequestURI());
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json");
+                            response.getWriter().write("{\"message\":\"Unauthorized\"}");
+                        })
+                )
+
+                // Disable default login page / redirects
+                .formLogin(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
+
+                // JWT filter
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         log.info("Security Filter Chain configured successfully");
