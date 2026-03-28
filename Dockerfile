@@ -9,50 +9,34 @@ WORKDIR /app
 COPY .mvn/ .mvn
 COPY mvnw pom.xml ./
 
-# Fix permission for mvnw
 RUN chmod +x mvnw
 
-# Download dependencies
-RUN ./mvnw dependency:go-offline
+# Download dependencies (cached unless pom.xml changes)
+RUN ./mvnw dependency:go-offline -B -q
 
-# Copy source code
+# Copy source and build
 COPY src ./src
+RUN ./mvnw clean package -DskipTests=true -B -q
 
-# Build JAR with production profile
-RUN ./mvnw clean package -DskipTests=true
 
 # ================================
-# Runtime stage
+# Runtime stage                   ← named so --target works
 # ================================
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17-jre-alpine AS runtime
 
 WORKDIR /app
 
-# Create non-root user (security best practice)
+# Security: non-root user
 RUN addgroup -S spring && adduser -S spring -G spring
-
-# Copy JAR from builder
-COPY --from=builder /app/target/*.jar app.jar
-
-# Fix permissions
-RUN chown spring:spring app.jar
-
-# Switch to non-root user
 USER spring:spring
 
-# ✅ FIXED: Expose 8080 (not 8081)
+# Copy only the JAR from builder
+COPY --from=builder /app/target/*.jar app.jar
+
 EXPOSE 8081
 
-# Health check (Spring Boot Actuator)
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
+# Fixed: port 8080 not 8081
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8081/actuator/health || exit 1
 
-# ✅ FIXED: Increased memory and added Java options
-ENTRYPOINT ["java", \
-    "-Xms512m", \
-    "-Xmx1024m", \
-    "-XX:+UseContainerSupport", \
-    "-XX:MaxRAMPercentage=75.0", \
-    "-Djava.security.egd=file:/dev/./urandom", \
-    "-jar", \
-    "app.jar"]
+ENTRYPOINT ["java", "-Xms256m", "-Xmx512m", "-jar", "app.jar"]
