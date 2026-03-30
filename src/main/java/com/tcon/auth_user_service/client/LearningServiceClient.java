@@ -6,7 +6,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@FeignClient(name = "learning-management-service")
+@FeignClient(
+        name = "learning-management-service",
+        contextId = "learningServiceClient"
+)
 public interface LearningServiceClient {
 
     @PutMapping("/api/courses/teacher/{teacherId}/demo-settings")

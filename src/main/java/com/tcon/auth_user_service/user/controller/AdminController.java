@@ -1,8 +1,7 @@
 package com.tcon.auth_user_service.user.controller;
 
-import com.tcon.auth_user_service.user.dto.AdminDto;
-import com.tcon.auth_user_service.user.dto.TeacherVerificationDto;
-import com.tcon.auth_user_service.user.dto.UserProfileDto;
+import com.tcon.auth_user_service.user.dto.*;
+import com.tcon.auth_user_service.user.service.AdminAnalyticsService;
 import com.tcon.auth_user_service.user.service.AdminService;
 import com.tcon.auth_user_service.user.service.TeacherVerificationService;
 import jakarta.validation.Valid;
@@ -25,6 +24,8 @@ public class AdminController {
 
     private final AdminService adminService;
     private final TeacherVerificationService verificationService;
+    private final AdminAnalyticsService adminAnalyticsService;
+
 
     /* =====================================================
        ADMIN PROFILE
@@ -151,4 +152,36 @@ public class AdminController {
                 )
         );
     }
+
+    /* =====================================================
+   ANALYTICS
+   ===================================================== */
+
+    @GetMapping("/analytics/overview")
+    public ResponseEntity<AdminOverviewDto> getOverview() {
+        return ResponseEntity.ok(adminAnalyticsService.getOverview());
+    }
+
+    @GetMapping("/analytics/teachers")
+    public ResponseEntity<List<TeacherAnalyticsDto>> getTeachers(
+            @RequestParam(name = "search", required = false) String search
+    ) {
+        return ResponseEntity.ok(adminAnalyticsService.getTeachers(search));
+    }
+
+    @GetMapping("/analytics/students")
+    public ResponseEntity<List<StudentAnalyticsDto>> getStudents(
+            @RequestParam(name = "search", required = false) String search
+    ) {
+        return ResponseEntity.ok(adminAnalyticsService.getStudents(search));
+    }
+
+    @GetMapping("/analytics/issues")
+    public ResponseEntity<List<AnalyticsIssueDto>> getIssues(
+            @RequestParam(name = "search", required = false) String search
+    ) {
+        return ResponseEntity.ok(adminAnalyticsService.getIssues(search));
+    }
+
+
 }
