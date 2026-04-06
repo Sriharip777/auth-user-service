@@ -47,7 +47,10 @@ public class AdminService {
 
     public AdminDto getProfile(String userId) {
         AdminProfile profile = adminRepository.findByUserId(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Admin profile not found for user: " + userId));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Admin profile not found for user: " + userId
+                ));
         return toDto(profile);
     }
 
@@ -132,4 +135,3 @@ public class AdminService {
                 .build();
     }
 }
-

@@ -46,4 +46,5 @@ public class ParentController {
         ParentDto updated = parentService.updateProfile(userId, dto);
         return ResponseEntity.ok(updated);
     }
+
 }

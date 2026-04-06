@@ -29,6 +29,9 @@ public class UserProfileDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    private String gradeId;
+    private String gradeName;
+
     public String getFullName() {
 
         if (firstName == null && lastName == null) {
