@@ -98,11 +98,21 @@ public class StudentService {
     }
 
     // ──────────────────────────────────────────────────────────────
-    // By grade
-    // ──────────────────────────────────────────────────────────────
+// By grade (EXACT MATCH — ORIGINAL KEPT)
+// ──────────────────────────────────────────────────────────────
     public List<StudentDto> getStudentsByGrade(String gradeLevel) {
         return studentRepository.findByGradeLevel(gradeLevel).stream()
                 .map(this::toDtoSafe)
+                .collect(Collectors.toList());
+    }
+
+    // ──────────────────────────────────────────────────────────────
+// 🔥 ADDED: By grade (CONTAINS + IGNORE CASE)
+// ──────────────────────────────────────────────────────────────
+    public List<StudentDto> getStudentsByGradeFlexible(String gradeLevel) {
+        return studentRepository.findByGradeLevelContainingIgnoreCase(gradeLevel)
+                .stream()
+                .map(this::toDtoWithUserDetails)
                 .collect(Collectors.toList());
     }
 

@@ -12,7 +12,11 @@ public interface StudentRepository extends MongoRepository<StudentProfile, Strin
 
     Optional<StudentProfile> findByUserId(String userId);
 
+    // ✅ ORIGINAL (KEPT)
     List<StudentProfile> findByGradeLevel(String gradeLevel);
+
+    // ✅ ADDED (from second code — do NOT remove above)
+    List<StudentProfile> findByGradeLevelContainingIgnoreCase(String gradeLevel);
 
     // MUST HAVE THIS METHOD
     List<StudentProfile> findByInterestsContaining(String interest);
@@ -23,6 +27,4 @@ public interface StudentRepository extends MongoRepository<StudentProfile, Strin
     List<StudentProfile> findByParentId(String parentId);
 
     boolean existsByUserId(String userId);
-
-
 }

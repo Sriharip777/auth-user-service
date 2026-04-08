@@ -35,7 +35,6 @@ public class SecurityConfig {
                 // Stateless REST API
                 .csrf(AbstractHttpConfigurer::disable)
                 // CORS handled at API Gateway; disable here
-                .cors(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
