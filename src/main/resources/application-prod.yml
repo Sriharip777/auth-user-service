@@ -1,9 +1,22 @@
 server:
   port: ${PORT:8081}
+  shutdown: graceful
 
 spring:
   application:
-    name: AUTH-USER-SERVICE
+    name: auth-user-service
+
+  output:
+    ansi:
+      enabled: NEVER
+
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
 
   data:
     mongodb:
@@ -24,8 +37,8 @@ spring:
         pool:
           max-active: ${REDIS_POOL_MAX_ACTIVE:10}
           max-idle: ${REDIS_POOL_MAX_IDLE:5}
-          min-idle: 2
-          max-wait: 1000ms
+          min-idle: ${REDIS_POOL_MIN_IDLE:2}
+          max-wait: ${REDIS_POOL_MAX_WAIT:1000ms}
 
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
@@ -55,11 +68,6 @@ spring:
       reconnect.backoff.ms: 1000
       reconnect.backoff.max.ms: 10000
 
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
-      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
-
 eureka:
   client:
     enabled: ${EUREKA_ENABLED:true}
@@ -68,11 +76,15 @@ eureka:
     service-url:
       defaultZone: ${EUREKA_URL}
     registry-fetch-interval-seconds: 15
+    eureka-server-connect-timeout-seconds: 10
+    eureka-server-read-timeout-seconds: 10
+    healthcheck:
+      enabled: false
 
   instance:
     hostname: ${EUREKA_INSTANCE_HOSTNAME}
-    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:false}
-    instance-id: ${EUREKA_INSTANCE_HOSTNAME}:${PORT:8081}
+    prefer-ip-address: false
+    instance-id: ${spring.application.name}:${eureka.instance.hostname}
     non-secure-port-enabled: false
     secure-port-enabled: true
     secure-port: 443
@@ -80,7 +92,7 @@ eureka:
     status-page-url: https://${eureka.instance.hostname}/actuator/info
     health-check-url: https://${eureka.instance.hostname}/actuator/health
     lease-renewal-interval-in-seconds: 10
-    lease-expiration-duration-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
 
 jwt:
   secret: ${JWT_SECRET}
@@ -89,9 +101,9 @@ jwt:
 
 app:
   two-factor:
-    enabled: true
+    enabled: ${TWO_FACTOR_ENABLED:true}
   password-reset:
-    token-expiration: 3600000
+    token-expiration: ${PASSWORD_RESET_TOKEN_EXPIRATION:3600000}
   frontend:
     url: ${FRONTEND_URL}
 
@@ -101,23 +113,32 @@ services:
   learning:
     url: ${LEARNING_SERVICE_URL}
 
-logging:
-  level:
-    root: INFO
-    com.tcon.authuserservice: DEBUG
-    org.springframework.cloud.loadbalancer: WARN
-    io.github.resilience4j: INFO
-    reactor.netty: WARN
-    io.netty: ERROR
-    org.springframework.data.redis: INFO
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics,prometheus
+      base-path: /actuator
   endpoint:
     health:
       show-details: always
+      show-components: always
+  health:
+    redis:
+      enabled: true
+    mongo:
+      enabled: true
+
+logging:
+  level:
+    root: ${LOG_LEVEL_ROOT:INFO}
+    com.tcon.authuserservice: ${LOG_LEVEL_APP:INFO}
+    org.springframework.cloud.loadbalancer: WARN
+    io.github.resilience4j: INFO
+    reactor.netty: WARN
+    io.netty: ERROR
+    org.springframework.data.redis: WARN
+    org.springframework.data.mongodb: WARN
+    com.netflix.discovery: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
