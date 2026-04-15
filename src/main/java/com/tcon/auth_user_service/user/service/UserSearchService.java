@@ -49,12 +49,19 @@ public class UserSearchService {
     }
 
     public List<UserProfileDto> getUsersByIds(List<String> userIds) {
-
         log.info("Fetching {} users by IDs", userIds.size());
 
         return userRepository.findAllById(userIds)
                 .stream()
-                .map(this::toDto)
+                .map(user -> {
+                    try {
+                        return toDto(user);
+                    } catch (Exception e) {
+                        log.warn("Could not map user {} to DTO: {}", user.getId(), e.getMessage());
+                        return null;
+                    }
+                })
+                .filter(dto -> dto != null)
                 .toList();
     }
 
@@ -98,17 +105,26 @@ public class UserSearchService {
         return UserProfileDto.builder()
                 .id(user.getId())
                 .email(user.getEmail())
-                .firstName(user.getFirstName())
-                .lastName(user.getLastName())
+                .firstName(user.getFirstName() != null ? user.getFirstName() : "")
+                .lastName(user.getLastName() != null ? user.getLastName() : "")
                 .phoneNumber(user.getPhoneNumber())
                 .role(user.getRole())
                 .status(user.getStatus())
                 .profilePictureUrl(user.getProfilePictureUrl())
-                .twoFactorEnabled(user.getTwoFactorEnabled())
-                .emailVerified(user.getEmailVerified())
+                .twoFactorEnabled(
+                        user.getTwoFactorEnabled() != null
+                                ? user.getTwoFactorEnabled()
+                                : false
+                )
+                .emailVerified(
+                        user.getEmailVerified() != null
+                                ? user.getEmailVerified()
+                                : false
+                )
                 .lastLoginAt(user.getLastLoginAt())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();
     }
+
 }

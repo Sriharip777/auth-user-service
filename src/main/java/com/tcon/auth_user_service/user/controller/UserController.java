@@ -24,25 +24,34 @@ public class UserController {
     private final UserSearchService userSearchService;
     private final ContactService contactService;
 
+
     @GetMapping("/{userId}")
     public ResponseEntity<UserProfileDto> getUserById(@PathVariable String userId) {
-
         log.info("Request to get user by ID: {}", userId);
-
-        UserProfileDto user = userSearchService.getUserById(userId);
-
-        return ResponseEntity.ok(user);
+        try {
+            UserProfileDto user = userSearchService.getUserById(userId);
+            return ResponseEntity.ok(user);
+        } catch (Exception e) {
+            log.error("❌ Get user by ID failed for {}: {}", userId, e.getMessage(), e);
+            return ResponseEntity.status(500).body(null);
+        }
     }
+
 
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<UserProfileDto> getMyDetails(@AuthenticationPrincipal String userId) {
+    public ResponseEntity<UserProfileDto> getMyDetails(
+            @AuthenticationPrincipal String userId) {
 
         log.info("Request to get own user details for userId: {}", userId);
 
-        UserProfileDto user = userSearchService.getUserById(userId);
-
-        return ResponseEntity.ok(user);
+        try {
+            UserProfileDto user = userSearchService.getUserById(userId);
+            return ResponseEntity.ok(user);
+        } catch (Exception e) {
+            log.error("❌ Get user details failed for {}: {}", userId, e.getMessage(), e);
+            return ResponseEntity.status(500).body(null);
+        }
     }
 
     /**
@@ -68,10 +77,14 @@ public class UserController {
 
         log.info("Batch request for {} users", request.getUserIds().size());
 
-        List<UserProfileDto> users =
-                userSearchService.getUsersByIds(request.getUserIds());
-
-        return ResponseEntity.ok(users);
+        try {
+            List<UserProfileDto> users =
+                    userSearchService.getUsersByIds(request.getUserIds());
+            return ResponseEntity.ok(users);
+        } catch (Exception e) {
+            log.error("❌ Batch fetch failed with exception: {}", e.getMessage(), e);
+            return ResponseEntity.ok(List.of());
+        }
     }
 
     /**

@@ -75,11 +75,6 @@ public class User {
     @LastModifiedDate
     private LocalDateTime updatedAt;
 
-    @CreatedBy
-    private String createdBy;
-
-    @LastModifiedBy
-    private String lastModifiedBy;
 
     // Helper Methods
     public String getFullName() {
