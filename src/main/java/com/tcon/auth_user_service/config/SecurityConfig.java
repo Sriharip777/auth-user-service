@@ -49,6 +49,11 @@ public class SecurityConfig {
                                 "/api/auth/refresh-token",
                                 "/api/auth/health",
 
+                                // ✅ NEWLY ADDED (from second code)
+                                "/api/teacher/top-rated",
+                                "/api/teacher/profile/**",
+                                "/api/teacher/search",
+
                                 // Actuator and system
                                 "/actuator/**",
                                 "/error",
