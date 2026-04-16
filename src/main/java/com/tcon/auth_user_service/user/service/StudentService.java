@@ -98,8 +98,8 @@ public class StudentService {
     }
 
     // ──────────────────────────────────────────────────────────────
-// By grade (EXACT MATCH — ORIGINAL KEPT)
-// ──────────────────────────────────────────────────────────────
+    // By grade (EXACT MATCH — ORIGINAL KEPT)
+    // ──────────────────────────────────────────────────────────────
     public List<StudentDto> getStudentsByGrade(String gradeLevel) {
         return studentRepository.findByGradeLevel(gradeLevel).stream()
                 .map(this::toDtoSafe)
@@ -107,8 +107,8 @@ public class StudentService {
     }
 
     // ──────────────────────────────────────────────────────────────
-// 🔥 ADDED: By grade (CONTAINS + IGNORE CASE)
-// ──────────────────────────────────────────────────────────────
+    // 🔥 ADDED: By grade (CONTAINS + IGNORE CASE)
+    // ──────────────────────────────────────────────────────────────
     public List<StudentDto> getStudentsByGradeFlexible(String gradeLevel) {
         return studentRepository.findByGradeLevelContainingIgnoreCase(gradeLevel)
                 .stream()
@@ -149,8 +149,6 @@ public class StudentService {
     // Mapping helpers
     // ──────────────────────────────────────────────────────────────
 
-    // ✅ FIXED: uses orElse(null) + null check instead of orElseThrow
-    // This prevents 500 if User record is missing for a student
     private StudentDto toDtoWithUserDetails(StudentProfile profile) {
         StudentDto dto = toDto(profile);
 
@@ -161,12 +159,14 @@ public class StudentService {
             dto.setLastName(user.getLastName());
             dto.setEmail(user.getEmail());
             dto.setPhone(user.getPhoneNumber());
+
             log.debug("✅ Enriched student {} with user details: {} {}",
                     profile.getUserId(), user.getFirstName(), user.getLastName());
+
         } else {
-            // Gracefully handle missing user — do NOT throw
             log.warn("⚠️ User record not found for studentId: {} — returning profile without names",
                     profile.getUserId());
+
             dto.setFirstName("Unknown");
             dto.setLastName("Student");
         }
@@ -174,7 +174,6 @@ public class StudentService {
         return dto;
     }
 
-    // Safe version — no user enrichment (for internal/Feign use)
     private StudentDto toDtoSafe(StudentProfile profile) {
         return toDto(profile);
     }
