@@ -36,6 +36,7 @@ public class ContactService {
             case STUDENT -> getTeachersForStudent(userId);
             case TEACHER -> getStudentsForTeacher(userId);
             case PARENT -> getTeachersForParent(userId);
+            case MODERATOR, ADMIN -> getAllUsersExceptSelf(userId);
             default -> {
                 log.warn("⚠️ Unsupported role for contacts: {}", role);
                 yield new ArrayList<>();
@@ -163,5 +164,21 @@ public class ContactService {
                 .role(user.getRole().name())
                 .profilePictureUrl(user.getProfilePictureUrl())
                 .build();
+    }
+
+    private List<ContactDto> getAllUsersExceptSelf(String currentUserId) {
+        log.info("🔍 Getting all users for MODERATOR/ADMIN: {}", currentUserId);
+
+        try {
+            return userRepository.findAll()
+                    .stream()
+                    .filter(user -> !user.getId().equals(currentUserId))
+                    .filter(user -> user.getStatus() != null)
+                    .map(this::convertToContactDto)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("❌ Failed to fetch all users for moderator/admin: {}", currentUserId, e);
+            return new ArrayList<>();
+        }
     }
 }

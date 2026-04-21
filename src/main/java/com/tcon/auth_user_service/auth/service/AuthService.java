@@ -40,8 +40,15 @@ public class AuthService {
     private static final List<String> ADMIN_ROLES = Arrays.asList(
             "ADMIN",
             "MODERATOR",
-            "FINANCIAL_ADMIN",           // ✅ NEW
-            "FINANCIAL_SUPPORT_ADMIN"    // ✅ NEW
+            "MODERATOR_L1",
+            "MODERATOR_L2",
+            "MODERATOR_L3",
+            "FINANCE",
+            "FIN_ADMIN_L1",
+            "FIN_ADMIN_L2",
+            "FIN_ADMIN_L3",
+            "FINANCIAL_ADMIN",
+            "FINANCIAL_SUPPORT_ADMIN"
     );
 
     /**
