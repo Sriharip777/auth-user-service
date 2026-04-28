@@ -234,9 +234,23 @@ public class TeacherService {
        DTO MAPPER
        ===================================================== */
     private TeacherDto toDto(TeacherProfile profile) {
+
+        UserProfileDto user = null;
+
+        try {
+            user = userSearchService.getUserById(profile.getUserId());
+        } catch (Exception e) {
+            log.warn("⚠️ Could not fetch user for userId {}: {}", profile.getUserId(), e.getMessage());
+        }
+
         return TeacherDto.builder()
                 .id(profile.getId())
                 .userId(profile.getUserId())
+
+                // ✅ FIXED (user now defined)
+                .firstName(user != null ? user.getFirstName() : null)
+                .lastName(user != null ? user.getLastName() : null)
+
                 .bio(profile.getBio())
                 .subjects(profile.getSubjects())
                 .languages(profile.getLanguages())

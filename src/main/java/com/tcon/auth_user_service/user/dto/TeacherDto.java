@@ -16,6 +16,10 @@ public class TeacherDto {
     private String id;
     private String userId;
 
+    // ✅ ADD THESE TWO FIELDS
+    private String firstName;
+    private String lastName;
+
     @NotBlank(message = "Bio is required")
     private String bio;
 

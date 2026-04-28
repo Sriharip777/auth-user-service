@@ -19,7 +19,6 @@ public class UserSearchService {
     private final UserRepository userRepository;
 
     public List<UserProfileDto> searchByRole(UserRole role) {
-
         log.debug("Searching users by role: {}", role);
 
         return userRepository.findByRole(role)
@@ -29,7 +28,6 @@ public class UserSearchService {
     }
 
     public List<UserProfileDto> searchByStatus(UserStatus status) {
-
         log.debug("Searching users by status: {}", status);
 
         return userRepository.findByStatus(status)
@@ -39,7 +37,6 @@ public class UserSearchService {
     }
 
     public List<UserProfileDto> getAllUsers() {
-
         log.debug("Retrieving all users");
 
         return userRepository.findAll()
@@ -66,7 +63,6 @@ public class UserSearchService {
     }
 
     public UserProfileDto getUserById(String userId) {
-
         User user = userRepository.findById(userId)
                 .orElseThrow(() ->
                         new IllegalArgumentException("User not found: " + userId));
@@ -75,7 +71,6 @@ public class UserSearchService {
     }
 
     public UserProfileDto getUserByEmail(String email) {
-
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() ->
                         new IllegalArgumentException("User not found with email: " + email));
@@ -84,7 +79,6 @@ public class UserSearchService {
     }
 
     public UserProfileDto getUserByPhoneNumber(String phoneNumber) {
-
         User user = userRepository.findByPhoneNumber(phoneNumber)
                 .orElseThrow(() ->
                         new IllegalArgumentException("User not found with phone number: " + phoneNumber));
@@ -101,7 +95,6 @@ public class UserSearchService {
     }
 
     private UserProfileDto toDto(User user) {
-
         return UserProfileDto.builder()
                 .id(user.getId())
                 .email(user.getEmail())
@@ -126,5 +119,4 @@ public class UserSearchService {
                 .updatedAt(user.getUpdatedAt())
                 .build();
     }
-
 }
