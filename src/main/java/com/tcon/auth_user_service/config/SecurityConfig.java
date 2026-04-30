@@ -66,7 +66,6 @@ public class SecurityConfig {
                                 // User service internal endpoints
                                 "/api/users/contacts",
                                 "/api/users/batch",
-                                "/api/users/**",
 
                                 // Parent & student cross-lookup endpoints
                                 "/api/parents/**",

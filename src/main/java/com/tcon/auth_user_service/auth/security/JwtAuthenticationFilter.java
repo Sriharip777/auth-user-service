@@ -43,15 +43,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 if (!jwtTokenProvider.isTokenExpired(token)) {
                     String userId = jwtTokenProvider.getUserId(token);
 
-
-// 🔥 ADD THIS BLOCK
                     User user = userRepository.findById(userId).orElse(null);
 
-                    if (user != null && user.getStatus() != UserStatus.ACTIVE) {
-                        log.warn("Blocked inactive user: {}", user.getEmail());
-                        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                        response.getWriter().write("Account is suspended or inactive");
-                        return;
+                    if (user != null) {
+                        UserStatus status = user.getStatus();
+
+                        if (status == UserStatus.SUSPENDED
+                                || status == UserStatus.LOCKED
+                                || status == UserStatus.BANNED
+                                || status == UserStatus.DELETED) {
+                            log.warn("Blocked user: {} with status {}", user.getEmail(), status);
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.setContentType("text/plain");
+                            response.getWriter().write("Account is not allowed to access this resource");
+                            return;
+                        }
                     }
 
                     String role = jwtTokenProvider.getRole(token).name();
