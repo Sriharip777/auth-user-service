@@ -10,5 +10,6 @@ import java.util.Optional;
 public interface ParentRepository extends MongoRepository<ParentProfile, String> {
 
     Optional<ParentProfile> findByUserId(String userId);
+    boolean existsByParentCode(String parentCode);
 }
 

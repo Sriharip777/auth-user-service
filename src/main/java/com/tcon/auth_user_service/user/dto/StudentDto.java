@@ -21,6 +21,10 @@ public class StudentDto {
 
     private String id;
     private String userId;
+
+    // ✅ NEW: exposed to frontend
+    private String studentId;
+
     private String firstName;
     private String lastName;
     private String email;

@@ -28,21 +28,20 @@ public class StudentProfile {
     @Indexed(unique = true)
     private String userId;
 
+    // ✅ NEW: sparse = true prevents E11000 when studentId is null
+    @Indexed(name = "studentId", unique = true, sparse = true)
+    private String studentId;  // format: STUD + 4 random digits e.g. STUD4829
+
     private String gradeLevel;
     private String schoolName;
     private LocalDate dateOfBirth;
 
-    // Changed from preferredSubjects to interests
     @Builder.Default
     private List<String> interests = new ArrayList<>();
 
-    // Changed from learningStyle to bio
     private String bio;
-
-    // Changed from goals to parentId
     private String parentId;
-    // single parent
-    // Added enrolledCourses
+
     @Builder.Default
     private List<String> enrolledCourses = new ArrayList<>();
 

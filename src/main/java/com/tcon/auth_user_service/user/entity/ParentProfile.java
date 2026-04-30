@@ -1,6 +1,5 @@
 package com.tcon.auth_user_service.user.entity;
 
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -26,6 +25,10 @@ public class ParentProfile {
 
     @Indexed(unique = true)
     private String userId;
+
+    // ✅ NEW: sparse = true prevents E11000 if parentCode is null
+    @Indexed(name = "parentCode", unique = true, sparse = true)
+    private String parentCode;  // format: PARE + 4 random digits e.g. PARE7291
 
     private List<String> childUserIds;
     private String preferredContactTime;

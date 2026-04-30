@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -23,22 +24,81 @@ public class StudentService {
     private final StudentRepository studentRepository;
     private final UserRepository userRepository;
 
-    // ──────────────────────────────────────────────────────────────
+    private static final Random RANDOM = new Random();
+
+    // ────────────────────────────────────────────────────────────
+    // Build 4-letter prefix from first name
+    // Example: Murali -> mura, Ann -> annx
+    // ────────────────────────────────────────────────────────────
+    private String buildPrefix(String firstName) {
+        if (firstName == null || firstName.isBlank()) {
+            return "user";
+        }
+
+        String cleaned = firstName.replaceAll("[^A-Za-z]", "").toLowerCase();
+
+        if (cleaned.isBlank()) {
+            cleaned = "user";
+        }
+
+        if (cleaned.length() >= 4) {
+            return cleaned.substring(0, 4);
+        }
+
+        return String.format("%-4s", cleaned).replace(' ', 'x');
+    }
+
+    // ────────────────────────────────────────────────────────────
+    // Auto-generate studentId from first name + 4 random digits
+    // Example: mura3456
+    // ────────────────────────────────────────────────────────────
+    private String generateStudentId(String firstName) {
+        String prefix = buildPrefix(firstName);
+        String studentId;
+        int attempts = 0;
+
+        do {
+            int digits = 1000 + RANDOM.nextInt(9000);
+            studentId = prefix + digits;
+            attempts++;
+
+            if (attempts > 100) {
+                throw new IllegalStateException(
+                        "Could not generate unique studentId after 100 attempts");
+            }
+        } while (studentRepository.existsByStudentId(studentId));
+
+        return studentId;
+    }
+
+    // ────────────────────────────────────────────────────────────
     // Create profile
-    // ──────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────
     @Transactional
     public StudentDto createProfile(String userId, StudentDto dto) {
-        if (studentRepository.findByUserId(userId).isPresent()) {
+        if (userId == null || userId.isBlank()) {
+            throw new IllegalArgumentException("UserId must not be null or blank");
+        }
+
+        if (studentRepository.existsByUserId(userId)) {
             throw new IllegalArgumentException(
                     "Student profile already exists for user: " + userId);
         }
 
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "User not found for userId: " + userId));
+
+        String studentId = generateStudentId(user.getFirstName());
+
         StudentProfile profile = StudentProfile.builder()
                 .userId(userId)
+                .studentId(studentId)
                 .gradeLevel(dto.getGradeLevel())
                 .schoolName(dto.getSchoolName())
                 .dateOfBirth(dto.getDateOfBirth())
-                .interests(dto.getInterests() != null ? dto.getInterests() : new ArrayList<>())
+                .interests(dto.getInterests() != null
+                        ? dto.getInterests() : new ArrayList<>())
                 .bio(dto.getBio())
                 .parentId(dto.getParentId())
                 .enrolledCourses(dto.getEnrolledCourses() != null
@@ -46,13 +106,15 @@ public class StudentService {
                 .build();
 
         StudentProfile saved = studentRepository.save(profile);
-        log.info("✅ Student profile created for userId: {}", userId);
+        log.info("✅ Student profile created for userId: {} with studentId: {}",
+                userId, studentId);
+
         return toDtoWithUserDetails(saved);
     }
 
-    // ──────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────
     // Get profile
-    // ──────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────
     public StudentDto getProfile(String userId) {
         StudentProfile profile = studentRepository.findByUserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -60,9 +122,9 @@ public class StudentService {
         return toDtoWithUserDetails(profile);
     }
 
-    // ──────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────
     // Update profile
-    // ──────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────
     @Transactional
     public StudentDto updateProfile(String userId, StudentDto dto) {
         StudentProfile profile = studentRepository.findByUserId(userId)
@@ -78,15 +140,17 @@ public class StudentService {
         profile.setParentId(dto.getParentId());
         profile.setEnrolledCourses(dto.getEnrolledCourses() != null
                 ? dto.getEnrolledCourses() : new ArrayList<>());
+        // studentId never changes after creation
 
         StudentProfile updated = studentRepository.save(profile);
         log.info("✅ Student profile updated for userId: {}", userId);
+
         return toDtoWithUserDetails(updated);
     }
 
-    // ──────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────
     // Delete profile
-    // ──────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────
     @Transactional
     public void deleteProfile(String userId) {
         StudentProfile profile = studentRepository.findByUserId(userId)
@@ -97,26 +161,23 @@ public class StudentService {
         log.info("✅ Student profile deleted for userId: {}", userId);
     }
 
-    // ──────────────────────────────────────────────────────────────
-// By grade (EXACT MATCH — ORIGINAL KEPT + UPDATED)
-// ──────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────
+    // By grade — exact match
+    // ────────────────────────────────────────────────────────────
     public List<StudentDto> getStudentsByGrade(String gradeLevel) {
-
-        // ✅ NEW: null/empty safety (from updated code)
-        if (gradeLevel == null || gradeLevel.trim().isEmpty()) {
-            log.warn("⚠️ getStudentsByGrade called with empty/null gradeLevel");
+        if (gradeLevel == null || gradeLevel.isBlank()) {
+            log.warn("⚠️ getStudentsByGrade called with empty gradeLevel");
             return List.of();
         }
 
-        // ✅ UPDATED: now returning enriched data instead of basic DTO
         return studentRepository.findByGradeLevel(gradeLevel).stream()
-                .map(this::toDtoWithUserDetails) // previously toDtoSafe
+                .map(this::toDtoWithUserDetails)
                 .collect(Collectors.toList());
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // 🔥 ADDED: By grade (CONTAINS + IGNORE CASE)
-    // ──────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────
+    // By grade — flexible contains + ignore case
+    // ────────────────────────────────────────────────────────────
     public List<StudentDto> getStudentsByGradeFlexible(String gradeLevel) {
         return studentRepository.findByGradeLevelContainingIgnoreCase(gradeLevel)
                 .stream()
@@ -124,18 +185,18 @@ public class StudentService {
                 .collect(Collectors.toList());
     }
 
-    // ──────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────
     // By interest
-    // ──────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────
     public List<StudentDto> getStudentsByInterest(String interest) {
         return studentRepository.findByInterestsContaining(interest).stream()
                 .map(this::toDtoSafe)
                 .collect(Collectors.toList());
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // ✅ By parentId — basic (used by Feign clients)
-    // ──────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────
+    // By parentId — basic
+    // ────────────────────────────────────────────────────────────
     public List<StudentDto> getStudentsByParentId(String parentId) {
         log.info("🔍 getStudentsByParentId: {}", parentId);
         return studentRepository.findByParentId(parentId).stream()
@@ -143,9 +204,9 @@ public class StudentService {
                 .collect(Collectors.toList());
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // ✅ By parentId — enriched with firstName/lastName (for UI dashboard)
-    // ──────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────
+    // By parentId — enriched
+    // ────────────────────────────────────────────────────────────
     public List<StudentDto> getStudentsByParentIdWithDetails(String parentId) {
         log.info("🔍 getStudentsByParentIdWithDetails: {}", parentId);
         return studentRepository.findByParentId(parentId).stream()
@@ -153,10 +214,9 @@ public class StudentService {
                 .collect(Collectors.toList());
     }
 
-    // ──────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────
     // Mapping helpers
-    // ──────────────────────────────────────────────────────────────
-
+    // ────────────────────────────────────────────────────────────
     private StudentDto toDtoWithUserDetails(StudentProfile profile) {
         StudentDto dto = toDto(profile);
 
@@ -167,14 +227,9 @@ public class StudentService {
             dto.setLastName(user.getLastName());
             dto.setEmail(user.getEmail());
             dto.setPhone(user.getPhoneNumber());
-
-            log.debug("✅ Enriched student {} with user details: {} {}",
-                    profile.getUserId(), user.getFirstName(), user.getLastName());
-
         } else {
-            log.warn("⚠️ User record not found for studentId: {} — returning profile without names",
+            log.warn("⚠️ User record not found for userId: {} — returning partial profile",
                     profile.getUserId());
-
             dto.setFirstName("Unknown");
             dto.setLastName("Student");
         }
@@ -190,6 +245,7 @@ public class StudentService {
         return StudentDto.builder()
                 .id(profile.getId())
                 .userId(profile.getUserId())
+                .studentId(profile.getStudentId())
                 .gradeLevel(profile.getGradeLevel())
                 .schoolName(profile.getSchoolName())
                 .dateOfBirth(profile.getDateOfBirth())

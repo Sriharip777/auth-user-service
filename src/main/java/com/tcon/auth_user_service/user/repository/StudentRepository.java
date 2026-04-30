@@ -27,4 +27,8 @@ public interface StudentRepository extends MongoRepository<StudentProfile, Strin
     List<StudentProfile> findByParentId(String parentId);
 
     boolean existsByUserId(String userId);
+
+
+    // ✅ NEW: needed for studentId uniqueness check during generation
+    boolean existsByStudentId(String studentId);
 }
