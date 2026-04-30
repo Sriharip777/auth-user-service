@@ -25,6 +25,7 @@ public class StudentController {
     private final StudentService studentService;
     private final StudentWishlistService studentWishlistService;
 
+
     // ──────────────────────────────────────────────────────────────
     // Create student profile
     // ──────────────────────────────────────────────────────────────
@@ -89,6 +90,11 @@ public class StudentController {
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<List<StudentDto>> getStudentsByGrade(
             @PathVariable String gradeLevel) {
+
+        if (gradeLevel == null || gradeLevel.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(List.of());
+        }
+
         List<StudentDto> students = studentService.getStudentsByGrade(gradeLevel);
         return ResponseEntity.ok(students);
     }

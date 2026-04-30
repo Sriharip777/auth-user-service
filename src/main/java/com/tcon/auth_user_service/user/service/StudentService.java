@@ -98,11 +98,19 @@ public class StudentService {
     }
 
     // ──────────────────────────────────────────────────────────────
-    // By grade (EXACT MATCH — ORIGINAL KEPT)
-    // ──────────────────────────────────────────────────────────────
+// By grade (EXACT MATCH — ORIGINAL KEPT + UPDATED)
+// ──────────────────────────────────────────────────────────────
     public List<StudentDto> getStudentsByGrade(String gradeLevel) {
+
+        // ✅ NEW: null/empty safety (from updated code)
+        if (gradeLevel == null || gradeLevel.trim().isEmpty()) {
+            log.warn("⚠️ getStudentsByGrade called with empty/null gradeLevel");
+            return List.of();
+        }
+
+        // ✅ UPDATED: now returning enriched data instead of basic DTO
         return studentRepository.findByGradeLevel(gradeLevel).stream()
-                .map(this::toDtoSafe)
+                .map(this::toDtoWithUserDetails) // previously toDtoSafe
                 .collect(Collectors.toList());
     }
 
