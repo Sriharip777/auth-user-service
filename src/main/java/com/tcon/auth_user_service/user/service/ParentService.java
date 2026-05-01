@@ -2,8 +2,10 @@ package com.tcon.auth_user_service.user.service;
 
 import com.tcon.auth_user_service.user.dto.ParentDto;
 import com.tcon.auth_user_service.user.entity.ParentProfile;
+import com.tcon.auth_user_service.user.entity.StudentProfile;
 import com.tcon.auth_user_service.user.entity.User;
 import com.tcon.auth_user_service.user.repository.ParentRepository;
+import com.tcon.auth_user_service.user.repository.StudentRepository;
 import com.tcon.auth_user_service.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +24,7 @@ import java.util.Random;
 public class ParentService {
 
     private final ParentRepository parentRepository;
+    private final StudentRepository studentRepository;
     private final UserRepository userRepository;
 
     private static final Random RANDOM = new Random();
@@ -64,14 +67,32 @@ public class ParentService {
                     ParentProfile profile = ParentProfile.builder()
                             .userId(userId)
                             .parentCode(parentCode)
-                            .childUserIds(dto != null && dto.getChildUserIds() != null
-                                    ? dto.getChildUserIds() : new ArrayList<>())
+                            .childUserIds(new ArrayList<>())
                             .preferredContactTime(dto != null ? dto.getPreferredContactTime() : null)
                             .emergencyContact(dto != null ? dto.getEmergencyContact() : null)
                             .relationship(dto != null ? dto.getRelationship() : null)
                             .build();
 
                     ParentProfile saved = parentRepository.save(profile);
+
+                    if (dto != null && dto.getStudentId() != null && !dto.getStudentId().isBlank()) {
+                        StudentProfile student = studentRepository.findByStudentId(dto.getStudentId().trim().toLowerCase())
+                                .orElseThrow(() -> new IllegalArgumentException("Invalid student ID"));
+
+                        student.setParentId(saved.getId());
+                        studentRepository.save(student);
+
+                        List<String> childUserIds = saved.getChildUserIds() != null
+                                ? saved.getChildUserIds()
+                                : new ArrayList<>();
+
+                        if (!childUserIds.contains(student.getUserId())) {
+                            childUserIds.add(student.getUserId());
+                            saved.setChildUserIds(childUserIds);
+                            saved = parentRepository.save(saved);
+                        }
+                    }
+
                     log.info("✅ Parent profile created for userId: {} with parentCode: {}", userId, parentCode);
                     return toDto(saved);
                 });

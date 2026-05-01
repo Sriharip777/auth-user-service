@@ -12,6 +12,8 @@ public interface StudentRepository extends MongoRepository<StudentProfile, Strin
 
     Optional<StudentProfile> findByUserId(String userId);
 
+    Optional<StudentProfile> findByStudentId(String studentId);
+
     // ✅ ORIGINAL (KEPT)
     List<StudentProfile> findByGradeLevel(String gradeLevel);
 

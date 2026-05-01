@@ -23,4 +23,6 @@ public class ParentDto {
     private String preferredContactTime;
     private String emergencyContact;
     private String relationship;
+
+    private String studentId;
 }

@@ -36,6 +36,7 @@ public class StudentDto {
     @NotBlank(message = "School name is required")
     private String schoolName;
 
+
     @NotNull(message = "Date of birth is required")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate dateOfBirth;
@@ -44,11 +45,15 @@ public class StudentDto {
     private List<String> interests = new ArrayList<>();
 
     private String bio;
+
+    // internal linked parent document id
     private String parentId;
+
+    // public parent code entered during create
+    private String parentCode;
 
     @Builder.Default
     private List<String> enrolledCourses = new ArrayList<>();
-
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;
 

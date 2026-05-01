@@ -1,8 +1,10 @@
 package com.tcon.auth_user_service.user.service;
 
 import com.tcon.auth_user_service.user.dto.StudentDto;
+import com.tcon.auth_user_service.user.entity.ParentProfile;
 import com.tcon.auth_user_service.user.entity.StudentProfile;
 import com.tcon.auth_user_service.user.entity.User;
+import com.tcon.auth_user_service.user.repository.ParentRepository;
 import com.tcon.auth_user_service.user.repository.StudentRepository;
 import com.tcon.auth_user_service.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,7 @@ import java.util.stream.Collectors;
 public class StudentService {
 
     private final StudentRepository studentRepository;
+    private final ParentRepository parentRepository;
     private final UserRepository userRepository;
 
     private static final Random RANDOM = new Random();
@@ -91,6 +94,15 @@ public class StudentService {
 
         String studentId = generateStudentId(user.getFirstName());
 
+        String resolvedParentId = null;
+
+        if (dto.getParentCode() != null && !dto.getParentCode().isBlank()) {
+            ParentProfile parent = parentRepository.findByParentCode(dto.getParentCode().trim().toUpperCase())
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid parent code"));
+
+            resolvedParentId = parent.getId();
+        }
+
         StudentProfile profile = StudentProfile.builder()
                 .userId(userId)
                 .studentId(studentId)
@@ -100,12 +112,27 @@ public class StudentService {
                 .interests(dto.getInterests() != null
                         ? dto.getInterests() : new ArrayList<>())
                 .bio(dto.getBio())
-                .parentId(dto.getParentId())
+                .parentId(resolvedParentId)
                 .enrolledCourses(dto.getEnrolledCourses() != null
                         ? dto.getEnrolledCourses() : new ArrayList<>())
                 .build();
 
         StudentProfile saved = studentRepository.save(profile);
+
+        if (resolvedParentId != null) {
+            ParentProfile parent = parentRepository.findById(resolvedParentId)
+                    .orElseThrow(() -> new IllegalArgumentException("Parent not found after linking"));
+
+            List<String> childUserIds = parent.getChildUserIds() != null
+                    ? parent.getChildUserIds()
+                    : new ArrayList<>();
+
+            if (!childUserIds.contains(userId)) {
+                childUserIds.add(userId);
+                parent.setChildUserIds(childUserIds);
+                parentRepository.save(parent);
+            }
+        }
         log.info("✅ Student profile created for userId: {} with studentId: {}",
                 userId, studentId);
 
