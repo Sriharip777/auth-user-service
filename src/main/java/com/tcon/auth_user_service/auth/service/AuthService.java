@@ -10,7 +10,8 @@ import com.tcon.auth_user_service.user.entity.UserStatus;
 import com.tcon.auth_user_service.user.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
+import com.tcon.auth_user_service.user.entity.AdminProfile;
+import com.tcon.auth_user_service.user.repository.AdminRepository;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -26,7 +27,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
-
+    private final AdminRepository adminRepository;
     private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
@@ -231,10 +232,8 @@ public class AuthService {
 
         String requestedRole = request.getRole().name();
 
-        // ✅ Validate against STATIC admin roles list
         boolean isStaticAdminRole = ADMIN_ROLES.contains(requestedRole);
 
-        // ✅ Validate against DYNAMIC admin_roles collection
         boolean isDynamicAdminRole = adminRoleRepository
                 .findByRoleName(requestedRole)
                 .map(role -> Boolean.TRUE.equals(role.getIsActive()))
@@ -264,19 +263,28 @@ public class AuthService {
                 .phoneNumber(request.getPhoneNumber())
                 .role(request.getRole())
                 .status(UserStatus.ACTIVE)
-                .emailVerified(true)  // ✅ Auto-verify admin emails
+                .emailVerified(true)
                 .twoFactorEnabled(false)
                 .failedLoginAttempts(0)
                 .build();
 
         User savedUser = userRepository.save(user);
 
-        log.info("✅ Admin user created: {} ({})",
-                savedUser.getEmail(), savedUser.getRole());
+        adminRepository.findByUserId(savedUser.getId()).orElseGet(() -> {
+            AdminProfile profile = AdminProfile.builder()
+                    .userId(savedUser.getId())
+                    .roleDescription(savedUser.getRole().name())
+                    .superAdmin(savedUser.getRole() == UserRole.ADMIN)
+                    .permissions(List.of())
+                    .department("ADMIN")
+                    .build();
+            return adminRepository.save(profile);
+        });
+
+        log.info("✅ Admin user created: {} ({})", savedUser.getEmail(), savedUser.getRole());
 
         return buildTokenResponse(savedUser);
     }
-
     /**
      * Shared token creation logic (SINGLE SOURCE OF TRUTH)
      */

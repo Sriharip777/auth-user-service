@@ -340,68 +340,75 @@ public class TeacherService {
             String subjectId,
             List<String> topicIds
     ) {
-        List<TeacherProfile> profiles = teacherRepository.findAll();
+        if (gradeId == null || gradeId.isBlank()) {
+            throw new IllegalArgumentException("gradeId is required");
+        }
+
+        if (subjectId == null || subjectId.isBlank()) {
+            throw new IllegalArgumentException("subjectId is required");
+        }
+
+        List<TeacherProfile> profiles =
+                teacherProfileRepository.findEligibleByGradeAndSubject(gradeId, subjectId);
+
         List<String> safeTopicIds = topicIds != null ? topicIds : List.of();
 
         return profiles.stream()
-                .filter(p -> "VERIFIED".equalsIgnoreCase(p.getVerificationStatus()))
-                .filter(p -> Boolean.TRUE.equals(p.getIsAvailable()))
-                .filter(p -> p.getTeachingAreas() != null && !p.getTeachingAreas().isEmpty())
-                .filter(p -> p.getTeachingAreas().stream().anyMatch(area -> {
-                    if (area == null) return false;
-                    if (area.getGradeId() == null || area.getSubjectId() == null) return false;
-                    if (!area.getGradeId().equals(gradeId)) return false;
-                    if (!area.getSubjectId().equals(subjectId)) return false;
+                .filter(profile -> profile.getTeachingAreas() != null
+                        && profile.getTeachingAreas().stream().anyMatch(area -> {
+                    if (area == null) {
+                        return false;
+                    }
 
-                    // If course has no topics → grade+subject is enough
-                    if (safeTopicIds.isEmpty()) return true;
+                    if (!gradeId.equals(area.getGradeId())) {
+                        return false;
+                    }
 
-                    // If teacher has no topicIds for that area → still allow (grade+subject match)
-                    if (area.getTopicIds() == null || area.getTopicIds().isEmpty()) return true;
+                    if (!subjectId.equals(area.getSubjectId())) {
+                        return false;
+                    }
 
-                    // Otherwise require at least one common topic
+                    if (safeTopicIds.isEmpty()) {
+                        return true;
+                    }
+
+                    if (area.getTopicIds() == null || area.getTopicIds().isEmpty()) {
+                        return true;
+                    }
+
                     return area.getTopicIds().stream().anyMatch(safeTopicIds::contains);
                 }))
-                .map(p -> {
-                    UserProfileDto userDetails = null;
-                    try {
-                        userDetails = userSearchService.getUserById(p.getUserId());
-                    } catch (Exception e) {
-                        log.warn("Could not fetch user details for teacher userId {}: {}", p.getUserId(), e.getMessage());
-                    }
-
-                    String firstName = userDetails != null ? userDetails.getFirstName() : null;
-                    String lastName  = userDetails != null ? userDetails.getLastName() : null;
-
-                    List<String> subjects = p.getSubjects();
-                    if (subjects == null || subjects.isEmpty()) {
-                        subjects = p.getTeachingAreas() == null ? List.of()
-                                : p.getTeachingAreas().stream()
-                                .map(TeachingArea::getSubject)
-                                .filter(s -> s != null && !s.isBlank())
-                                .distinct()
-                                .toList();
-                    }
-
-                    return TeacherResponseDto.builder()
-                            .id(p.getId())
-                            .userId(p.getUserId())
-                            .firstName(firstName)
-                            .lastName(lastName)
-                            .bio(p.getBio())
-                            .subjects(subjects)
-                            .languages(p.getLanguages())
-                            .yearsOfExperience(p.getYearsOfExperience())
-                            .qualifications(p.getQualifications())
-                            .hourlyRate(p.getHourlyRate())
-                            .averageRating(p.getAverageRating())
-                            .totalReviews(p.getTotalReviews())
-                            .verificationStatus(p.getVerificationStatus())
-                            .isAvailable(p.getIsAvailable())
-                            .timezone(p.getTimezone())
-                            .build();
-                })
+                .map(this::mapToTeacherResponseDto)
                 .toList();
+    }
+
+    private TeacherResponseDto mapToTeacherResponseDto(TeacherProfile profile) {
+        UserProfileDto user = null;
+
+        try {
+            user = userSearchService.getUserById(profile.getUserId());
+        } catch (Exception ex) {
+            log.warn("Could not fetch user details for teacher userId {}: {}",
+                    profile.getUserId(), ex.getMessage());
+        }
+
+        return TeacherResponseDto.builder()
+                .id(profile.getId())
+                .userId(profile.getUserId())
+                .firstName(user != null ? user.getFirstName() : null)
+                .lastName(user != null ? user.getLastName() : null)
+                .bio(profile.getBio())
+                .subjects(profile.getSubjects() != null ? profile.getSubjects() : List.of())
+                .languages(profile.getLanguages() != null ? profile.getLanguages() : List.of())
+                .yearsOfExperience(profile.getYearsOfExperience())
+                .qualifications(profile.getQualifications())
+                .hourlyRate(profile.getHourlyRate())
+                .averageRating(profile.getAverageRating())
+                .totalReviews(profile.getTotalReviews())
+                .verificationStatus(profile.getVerificationStatus())
+                .isAvailable(profile.getIsAvailable())
+                .timezone(profile.getTimezone())
+                .build();
     }
 
 }

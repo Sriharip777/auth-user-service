@@ -1,10 +1,10 @@
 package com.tcon.auth_user_service.user.service;
 
-
 import com.tcon.auth_user_service.user.dto.AdminDto;
 import com.tcon.auth_user_service.user.dto.UserProfileDto;
 import com.tcon.auth_user_service.user.entity.AdminProfile;
 import com.tcon.auth_user_service.user.entity.User;
+import com.tcon.auth_user_service.user.entity.UserRole;
 import com.tcon.auth_user_service.user.entity.UserStatus;
 import com.tcon.auth_user_service.user.repository.AdminRepository;
 import com.tcon.auth_user_service.user.repository.UserRepository;
@@ -29,15 +29,24 @@ public class AdminService {
     @Transactional
     public AdminDto createProfile(String userId, AdminDto dto) {
         if (adminRepository.findByUserId(userId).isPresent()) {
-            throw new IllegalArgumentException("Admin profile already exists for user: " + userId);
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Admin profile already exists for user: " + userId
+            );
         }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "User not found: " + userId
+                ));
 
         AdminProfile profile = AdminProfile.builder()
                 .userId(userId)
-                .roleDescription(dto.getRoleDescription())
-                .superAdmin(dto.getSuperAdmin() != null ? dto.getSuperAdmin() : false)
-                .permissions(dto.getPermissions())
-                .department(dto.getDepartment())
+                .roleDescription(dto.getRoleDescription() != null ? dto.getRoleDescription() : user.getRole().name())
+                .superAdmin(dto.getSuperAdmin() != null ? dto.getSuperAdmin() : user.getRole() == UserRole.ADMIN)
+                .permissions(dto.getPermissions() != null ? dto.getPermissions() : List.of())
+                .department(dto.getDepartment() != null ? dto.getDepartment() : "ADMIN")
                 .build();
 
         AdminProfile saved = adminRepository.save(profile);
@@ -47,10 +56,26 @@ public class AdminService {
 
     public AdminDto getProfile(String userId) {
         AdminProfile profile = adminRepository.findByUserId(userId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Admin profile not found for user: " + userId
-                ));
+                .orElseGet(() -> {
+                    User user = userRepository.findById(userId)
+                            .orElseThrow(() -> new ResponseStatusException(
+                                    HttpStatus.NOT_FOUND,
+                                    "User not found: " + userId
+                            ));
+
+                    AdminProfile newProfile = AdminProfile.builder()
+                            .userId(userId)
+                            .roleDescription(user.getRole().name())
+                            .superAdmin(user.getRole() == UserRole.ADMIN)
+                            .permissions(List.of())
+                            .department("ADMIN")
+                            .build();
+
+                    AdminProfile saved = adminRepository.save(newProfile);
+                    log.info("Auto-created admin profile for userId: {}", userId);
+                    return saved;
+                });
+
         return toDto(profile);
     }
 
@@ -63,24 +88,49 @@ public class AdminService {
     @Transactional
     public AdminDto updateProfile(String userId, AdminDto dto) {
         AdminProfile profile = adminRepository.findByUserId(userId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Admin profile not found for user: " + userId
-                ));
+                .orElseGet(() -> {
+                    User user = userRepository.findById(userId)
+                            .orElseThrow(() -> new ResponseStatusException(
+                                    HttpStatus.NOT_FOUND,
+                                    "User not found: " + userId
+                            ));
 
-        profile.setRoleDescription(dto.getRoleDescription());
-        profile.setSuperAdmin(dto.getSuperAdmin() != null ? dto.getSuperAdmin() : profile.getSuperAdmin());
-        profile.setPermissions(dto.getPermissions());
-        profile.setDepartment(dto.getDepartment());
+                    AdminProfile newProfile = AdminProfile.builder()
+                            .userId(userId)
+                            .roleDescription(user.getRole().name())
+                            .superAdmin(user.getRole() == UserRole.ADMIN)
+                            .permissions(List.of())
+                            .department("ADMIN")
+                            .build();
+
+                    return adminRepository.save(newProfile);
+                });
+
+        if (dto.getRoleDescription() != null) {
+            profile.setRoleDescription(dto.getRoleDescription());
+        }
+        if (dto.getSuperAdmin() != null) {
+            profile.setSuperAdmin(dto.getSuperAdmin());
+        }
+        if (dto.getPermissions() != null) {
+            profile.setPermissions(dto.getPermissions());
+        }
+        if (dto.getDepartment() != null) {
+            profile.setDepartment(dto.getDepartment());
+        }
 
         AdminProfile saved = adminRepository.save(profile);
+        log.info("Admin profile updated for userId: {}", userId);
         return toDto(saved);
     }
 
     @Transactional
     public void suspendUser(String userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "User not found: " + userId
+                ));
 
         user.setStatus(UserStatus.SUSPENDED);
         userRepository.save(user);
@@ -90,7 +140,10 @@ public class AdminService {
     @Transactional
     public void activateUser(String userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "User not found: " + userId
+                ));
 
         user.setStatus(UserStatus.ACTIVE);
         userRepository.save(user);
@@ -100,7 +153,10 @@ public class AdminService {
     @Transactional
     public void deleteUser(String userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "User not found: " + userId
+                ));
 
         user.setStatus(UserStatus.DELETED);
         userRepository.save(user);
@@ -132,6 +188,7 @@ public class AdminService {
                 .emailVerified(user.getEmailVerified())
                 .lastLoginAt(user.getLastLoginAt())
                 .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
                 .build();
     }
 }

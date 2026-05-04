@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -32,9 +33,8 @@ public class SecurityConfig {
         log.info("Configuring Security Filter Chain (auth-user-service)");
 
         http
-                // Stateless REST API
                 .csrf(AbstractHttpConfigurer::disable)
-                // CORS handled at API Gateway; disable here
+
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
@@ -48,8 +48,9 @@ public class SecurityConfig {
                                 "/api/auth/password/reset",
                                 "/api/auth/refresh-token",
                                 "/api/auth/health",
+                                "/api/auth/2fa/verify",
 
-                                // ✅ NEWLY ADDED (from second code)
+                                // Teacher public endpoints
                                 "/api/teacher/top-rated",
                                 "/api/teacher/profile/**",
                                 "/api/teacher/search",
@@ -63,21 +64,20 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
 
-                                // User service internal endpoints
+                                // Internal/shared endpoints
                                 "/api/users/contacts",
                                 "/api/users/batch",
-
-                                // Parent & student cross-lookup endpoints
                                 "/api/parents/**",
                                 "/api/students/**",
-
-                                // Teacher endpoints (internal)
                                 "/api/teachers/**"
                         ).permitAll()
+
+                        // Allow browser preflight if gateway forwards OPTIONS
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
                         .anyRequest().authenticated()
                 )
 
-                // Return 401 JSON instead of redirecting to /login
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) -> {
                             log.warn("Unauthorized request: {} {}", request.getMethod(), request.getRequestURI());
@@ -87,11 +87,9 @@ public class SecurityConfig {
                         })
                 )
 
-                // Disable default login page / redirects
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
 
-                // JWT filter
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         log.info("Security Filter Chain configured successfully");

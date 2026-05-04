@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,41 +26,32 @@ public class AdminController {
     private final TeacherVerificationService verificationService;
     private final AdminAnalyticsService adminAnalyticsService;
 
-
-    /* =====================================================
-       ADMIN PROFILE
-       ===================================================== */
-
     @PostMapping("/profile")
     public ResponseEntity<AdminDto> createProfile(
-            @AuthenticationPrincipal String userId,
+            Authentication authentication,
             @Valid @RequestBody AdminDto dto
     ) {
+        String userId = authentication.getName();
         log.info("Creating admin profile for userId: {}", userId);
         return ResponseEntity.ok(adminService.createProfile(userId, dto));
     }
 
     @GetMapping("/profile")
-    public ResponseEntity<AdminDto> getProfile(
-            @AuthenticationPrincipal String userId
-    ) {
+    public ResponseEntity<AdminDto> getProfile(Authentication authentication) {
+        String userId = authentication.getName();
+        log.info("Fetching admin profile for userId: {}", userId);
         return ResponseEntity.ok(adminService.getProfile(userId));
     }
 
     @PutMapping("/profile")
     public ResponseEntity<AdminDto> updateProfile(
-            @AuthenticationPrincipal String userId,
+            Authentication authentication,
             @Valid @RequestBody AdminDto dto
     ) {
-        log.info("[AdminController] Updating admin profile for userId={}", userId);
+        String userId = authentication.getName();
+        log.info("Updating admin profile for userId={}", userId);
         return ResponseEntity.ok(adminService.updateProfile(userId, dto));
     }
-
-
-
-    /* =====================================================
-       USER MANAGEMENT
-       ===================================================== */
 
     @GetMapping("/users")
     public ResponseEntity<List<UserProfileDto>> getAllUsers() {
@@ -68,83 +59,54 @@ public class AdminController {
     }
 
     @PutMapping("/users/{userId}/suspend")
-    public ResponseEntity<Map<String, String>> suspendUser(
-            @PathVariable String userId
-    ) {
+    public ResponseEntity<Map<String, String>> suspendUser(@PathVariable String userId) {
         adminService.suspendUser(userId);
         return ResponseEntity.ok(Map.of("message", "User suspended successfully"));
     }
 
     @PutMapping("/users/{userId}/activate")
-    public ResponseEntity<Map<String, String>> activateUser(
-            @PathVariable String userId
-    ) {
+    public ResponseEntity<Map<String, String>> activateUser(@PathVariable String userId) {
         adminService.activateUser(userId);
         return ResponseEntity.ok(Map.of("message", "User activated successfully"));
     }
 
     @DeleteMapping("/users/{userId}")
-    public ResponseEntity<Map<String, String>> deleteUser(
-            @PathVariable String userId
-    ) {
+    public ResponseEntity<Map<String, String>> deleteUser(@PathVariable String userId) {
         adminService.deleteUser(userId);
         return ResponseEntity.ok(Map.of("message", "User deleted successfully"));
     }
 
-    /* =====================================================
-       TEACHER VERIFICATIONS
-       ===================================================== */
-
-    /**
-     * ✅ Legacy endpoint (still supported)
-     * Used if someone directly calls /pending
-     */
     @GetMapping("/verifications/pending")
     public ResponseEntity<List<TeacherVerificationDto>> getPendingVerifications() {
-        return ResponseEntity.ok(
-                verificationService.getPendingVerifications()
-        );
+        return ResponseEntity.ok(verificationService.getPendingVerifications());
     }
 
-    /**
-     * ✅ MAIN ENDPOINT (USED BY FRONTEND)
-     * /api/admin/verifications?status=PENDING|APPROVED|REJECTED
-     */
     @GetMapping("/verifications")
     public ResponseEntity<List<TeacherVerificationDto>> getVerificationsByStatus(
             @RequestParam(name = "status") String status
     ) {
         log.info("Admin fetching verifications with status: {}", status);
-        return ResponseEntity.ok(
-                verificationService.getVerificationsByStatus(status)
-        );
+        return ResponseEntity.ok(verificationService.getVerificationsByStatus(status));
     }
 
-    /**
-     * Approve verification
-     */
     @PutMapping("/verifications/{verificationId}/approve")
     public ResponseEntity<TeacherVerificationDto> approveVerification(
             @PathVariable String verificationId,
-            @AuthenticationPrincipal String reviewerUserId
+            Authentication authentication
     ) {
+        String reviewerUserId = authentication.getName();
         return ResponseEntity.ok(
-                verificationService.approveVerification(
-                        verificationId,
-                        reviewerUserId
-                )
+                verificationService.approveVerification(verificationId, reviewerUserId)
         );
     }
 
-    /**
-     * Reject verification
-     */
     @PutMapping("/verifications/{verificationId}/reject")
     public ResponseEntity<TeacherVerificationDto> rejectVerification(
             @PathVariable String verificationId,
-            @AuthenticationPrincipal String reviewerUserId,
+            Authentication authentication,
             @RequestBody Map<String, String> body
     ) {
+        String reviewerUserId = authentication.getName();
         return ResponseEntity.ok(
                 verificationService.rejectVerification(
                         verificationId,
@@ -153,10 +115,6 @@ public class AdminController {
                 )
         );
     }
-
-    /* =====================================================
-   ANALYTICS
-   ===================================================== */
 
     @GetMapping("/analytics/overview")
     public ResponseEntity<AdminOverviewDto> getOverview() {
@@ -183,6 +141,4 @@ public class AdminController {
     ) {
         return ResponseEntity.ok(adminAnalyticsService.getIssues(search));
     }
-
-
 }

@@ -26,4 +26,8 @@ public interface TeacherProfileRepository extends MongoRepository<TeacherProfile
     List<TeacherProfile> findByMinRating(Double minRating);
 
     List<TeacherProfile> findTop10ByOrderByAverageRatingDesc();
+
+    @Query("{ 'verificationStatus': 'VERIFIED', 'isAvailable': true, 'teachingAreas': { $elemMatch: { 'gradeId': ?0, 'subjectId': ?1 } } }")
+    List<TeacherProfile> findEligibleByGradeAndSubject(String gradeId, String subjectId);
+
 }
