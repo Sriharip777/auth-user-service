@@ -1,5 +1,6 @@
 package com.tcon.auth_user_service.user.controller;
 
+import com.tcon.auth_user_service.user.dto.AssignedStudentOptionDto;
 import com.tcon.auth_user_service.user.dto.StudentDto;
 import com.tcon.auth_user_service.user.service.StudentService;
 import jakarta.validation.Valid;
@@ -36,6 +37,16 @@ public class StudentController {
             @Valid @RequestBody StudentDto dto) {
         StudentDto created = studentService.createProfile(userId, dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @GetMapping("/teacher/{teacherId}/assigned-students")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public ResponseEntity<List<AssignedStudentOptionDto>> getAssignedStudentsForTeacher(
+            @PathVariable String teacherId
+    ) {
+        List<AssignedStudentOptionDto> students =
+                studentService.getAssignedStudentsForTeacher(teacherId);
+        return ResponseEntity.ok(students);
     }
 
     // ──────────────────────────────────────────────────────────────

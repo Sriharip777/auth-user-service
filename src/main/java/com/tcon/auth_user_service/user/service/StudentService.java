@@ -1,5 +1,6 @@
 package com.tcon.auth_user_service.user.service;
 
+import com.tcon.auth_user_service.user.dto.AssignedStudentOptionDto;
 import com.tcon.auth_user_service.user.dto.StudentDto;
 import com.tcon.auth_user_service.user.entity.ParentProfile;
 import com.tcon.auth_user_service.user.entity.StudentProfile;
@@ -262,6 +263,47 @@ public class StudentService {
         }
 
         return dto;
+    }
+
+    @Transactional(readOnly = true)
+    public List<AssignedStudentOptionDto> getAssignedStudentsForTeacher(String teacherId) {
+        if (teacherId == null || teacherId.isBlank()) {
+            throw new IllegalArgumentException("Teacher ID must not be null or blank");
+        }
+
+        log.info("🔍 Fetching assigned students for teacherId: {}", teacherId);
+
+        List<StudentProfile> studentProfiles = studentRepository.findByParentId(teacherId);
+
+        if (studentProfiles == null || studentProfiles.isEmpty()) {
+            log.info("ℹ️ No assigned students found for teacherId: {}", teacherId);
+            return List.of();
+        }
+
+        return studentProfiles.stream()
+                .map(this::mapToAssignedStudentOptionDto)
+                .toList();
+    }
+
+    private AssignedStudentOptionDto mapToAssignedStudentOptionDto(StudentProfile profile) {
+        User user = userRepository.findById(profile.getUserId()).orElse(null);
+
+        String firstName = user != null && user.getFirstName() != null
+                ? user.getFirstName().trim()
+                : "";
+
+        String lastName = user != null && user.getLastName() != null
+                ? user.getLastName().trim()
+                : "";
+
+        String fullName = (firstName + " " + lastName).trim();
+
+        return AssignedStudentOptionDto.builder()
+                .userId(profile.getUserId())
+                .studentId(profile.getStudentId())
+                .name(fullName.isBlank() ? "Student" : fullName)
+                .email(user != null ? user.getEmail() : null)
+                .build();
     }
 
     private StudentDto toDtoSafe(StudentProfile profile) {

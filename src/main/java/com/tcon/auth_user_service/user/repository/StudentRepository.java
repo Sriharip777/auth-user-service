@@ -25,8 +25,8 @@ public interface StudentRepository extends MongoRepository<StudentProfile, Strin
 
     List<StudentProfile> findBySchoolName(String schoolName);
 
-    // MUST HAVE THIS METHOD
     List<StudentProfile> findByParentId(String parentId);
+
 
     boolean existsByUserId(String userId);
 
