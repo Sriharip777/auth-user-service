@@ -128,4 +128,16 @@ public class AuthController {
                 )
         );
     }
+
+    @GetMapping("/check-email")
+    public ResponseEntity<Map<String, Boolean>> checkEmail(@RequestParam String email) {
+        boolean exists = authService.emailExists(email);
+        return ResponseEntity.ok(Map.of("exists", exists));
+    }
+
+    @GetMapping("/check-phone")
+    public ResponseEntity<Map<String, Boolean>> checkPhone(@RequestParam String phoneNumber) {
+        boolean exists = authService.phoneExists(phoneNumber);
+        return ResponseEntity.ok(Map.of("exists", exists));
+    }
 }

@@ -312,4 +312,14 @@ public class AuthService {
                 )
                 .build();
     }
+
+    @Transactional(readOnly = true)
+    public boolean emailExists(String email) {
+        return userRepository.existsByEmail(email);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean phoneExists(String phoneNumber) {
+        return phoneNumber != null && userRepository.existsByPhoneNumber(phoneNumber);
+    }
 }
