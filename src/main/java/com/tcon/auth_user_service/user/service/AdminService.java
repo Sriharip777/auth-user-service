@@ -1,12 +1,11 @@
 package com.tcon.auth_user_service.user.service;
 
 import com.tcon.auth_user_service.user.dto.AdminDto;
+import com.tcon.auth_user_service.user.dto.UpdateTeacherAreasRequest;
 import com.tcon.auth_user_service.user.dto.UserProfileDto;
-import com.tcon.auth_user_service.user.entity.AdminProfile;
-import com.tcon.auth_user_service.user.entity.User;
-import com.tcon.auth_user_service.user.entity.UserRole;
-import com.tcon.auth_user_service.user.entity.UserStatus;
+import com.tcon.auth_user_service.user.entity.*;
 import com.tcon.auth_user_service.user.repository.AdminRepository;
+import com.tcon.auth_user_service.user.repository.TeacherProfileRepository;
 import com.tcon.auth_user_service.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +24,7 @@ public class AdminService {
 
     private final AdminRepository adminRepository;
     private final UserRepository userRepository;
-
+   private final TeacherProfileRepository  teacherProfileRepository;
     @Transactional
     public AdminDto createProfile(String userId, AdminDto dto) {
         if (adminRepository.findByUserId(userId).isPresent()) {
@@ -190,5 +189,32 @@ public class AdminService {
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();
+    }
+
+    @Transactional
+    public void updateTeacherTeachingAreas(String userId, UpdateTeacherAreasRequest request) {
+        TeacherProfile profile = teacherProfileRepository.findByUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Teacher profile not found: " + userId));
+
+        if (request.getTeachingAreas() != null) {
+            profile.setTeachingAreas(
+                    request.getTeachingAreas().stream()
+                            .map(a -> TeachingArea.builder()
+                                    .gradeId(a.getGradeId())
+                                    .grade(a.getGrade())
+                                    .subjectId(a.getSubjectId())
+                                    .subject(a.getSubject())
+                                    .topicIds(a.getTopicIds())
+                                    .topics(a.getTopics())
+                                    .build())
+                            .toList()
+            );
+        }
+
+        if (request.getIsAvailable() != null) {
+            profile.setIsAvailable(request.getIsAvailable());
+        }
+
+        teacherProfileRepository.save(profile);
     }
 }

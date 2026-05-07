@@ -36,6 +36,14 @@ public class AdminController {
         return ResponseEntity.ok(adminService.createProfile(userId, dto));
     }
 
+    @PutMapping("/teachers/{userId}/teaching-areas")
+    public ResponseEntity<Map<String, String>> updateTeacherTeachingAreas(
+            @PathVariable String userId,
+            @RequestBody UpdateTeacherAreasRequest request
+    ) {
+        adminService.updateTeacherTeachingAreas(userId, request);
+        return ResponseEntity.ok(Map.of("message", "Teacher teaching areas updated successfully"));
+    }
     @GetMapping("/profile")
     public ResponseEntity<AdminDto> getProfile(Authentication authentication) {
         String userId = authentication.getName();
