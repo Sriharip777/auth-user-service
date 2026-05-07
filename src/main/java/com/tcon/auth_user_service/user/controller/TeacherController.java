@@ -194,13 +194,23 @@ public class TeacherController {
     @PostMapping("/eligible-for-course")
     public ResponseEntity<List<TeacherResponseDto>> eligibleForCourse(
             @RequestBody EligibleTeacherRequest req) {
-        return ResponseEntity.ok(
-                teacherService.findEligibleForCourse(
-                        req.getGradeId(),
-                        req.getSubjectId(),
-                        req.getTopicIds()
-                )
-        );
+        log.info("📥 Eligible teachers request: gradeId={}, subjectId={}, topicIds={}",
+                req.getGradeId(), req.getSubjectId(), req.getTopicIds());
+        try {
+            List<TeacherResponseDto> teachers = teacherService.findEligibleForCourse(
+                    req.getGradeId(),
+                    req.getSubjectId(),
+                    req.getTopicIds()
+            );
+            log.info("✅ Found {} eligible teachers", teachers.size());
+            return ResponseEntity.ok(teachers);
+        } catch (IllegalArgumentException ex) {
+            log.warn("⚠️ Invalid request: {}", ex.getMessage());
+            return ResponseEntity.ok(List.of());
+        } catch (Exception ex) {
+            log.error("❌ Error finding eligible teachers: {}", ex.getMessage(), ex);
+            return ResponseEntity.ok(List.of());
+        }
     }
 
 

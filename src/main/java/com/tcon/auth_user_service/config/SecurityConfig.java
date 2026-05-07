@@ -49,7 +49,7 @@ public class SecurityConfig {
                                 "/api/auth/refresh-token",
                                 "/api/auth/health",
                                 "/api/auth/2fa/verify",
-
+                                "/api/teacher/eligible-for-course", // ✅ ONLY THIS
                                 // Teacher public endpoints
                                 "/api/teacher/top-rated",
                                 "/api/teacher/profile/**",
