@@ -199,14 +199,38 @@ public class AdminService {
         if (request.getTeachingAreas() != null) {
             profile.setTeachingAreas(
                     request.getTeachingAreas().stream()
-                            .map(a -> TeachingArea.builder()
-                                    .gradeId(a.getGradeId())
-                                    .grade(a.getGrade())
-                                    .subjectId(a.getSubjectId())
-                                    .subject(a.getSubject())
-                                    .topicIds(a.getTopicIds())
-                                    .topics(a.getTopics())
-                                    .build())
+                            .filter(java.util.Objects::nonNull)
+                            .map(a -> {
+                                if (a.getGradeId() == null || a.getGradeId().isBlank()) {
+                                    throw new IllegalArgumentException("gradeId is required for each teaching area");
+                                }
+                                if (a.getSubjectId() == null || a.getSubjectId().isBlank()) {
+                                    throw new IllegalArgumentException("subjectId is required for each teaching area");
+                                }
+
+                                return TeachingArea.builder()
+                                        .gradeId(a.getGradeId().trim())
+                                        .grade(a.getGrade() != null ? a.getGrade().trim() : null)
+                                        .subjectId(a.getSubjectId().trim())
+                                        .subject(a.getSubject() != null ? a.getSubject().trim() : null)
+                                        .topicIds(a.getTopicIds() != null
+                                                ? a.getTopicIds().stream()
+                                                .filter(java.util.Objects::nonNull)
+                                                .map(String::trim)
+                                                .filter(s -> !s.isBlank())
+                                                .distinct()
+                                                .toList()
+                                                : List.of())
+                                        .topics(a.getTopics() != null
+                                                ? a.getTopics().stream()
+                                                .filter(java.util.Objects::nonNull)
+                                                .map(String::trim)
+                                                .filter(s -> !s.isBlank())
+                                                .distinct()
+                                                .toList()
+                                                : List.of())
+                                        .build();
+                            })
                             .toList()
             );
         }
