@@ -5,15 +5,6 @@ server:
 spring:
   application:
     name: auth-user-service
-feign:
-  learning-management-service:
-    url: ${LEARNING_SERVICE_URL}
-  client:
-    config:
-      default:
-        connectTimeout: 5000
-        readTimeout: 10000
-        loggerLevel: BASIC
 
   output:
     ansi:
@@ -34,7 +25,7 @@ feign:
       auto-index-creation: true
 
     redis:
-      host: ${REDIS_HOST}
+      host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
       timeout: ${REDIS_TIMEOUT:5000ms}
@@ -103,6 +94,16 @@ eureka:
     lease-renewal-interval-in-seconds: 10
     lease-expiration-duration-in-seconds: 90
 
+feign:
+  learning-management-service:
+    url: ${FEIGN_LEARNING_MANAGEMENT_SERVICE_URL}
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 10000
+        loggerLevel: BASIC
+
 jwt:
   secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:86400000}
@@ -132,6 +133,13 @@ management:
     health:
       show-details: always
       show-components: always
+      group:
+        startup:
+          include: ping,mongo,diskSpace
+        liveness:
+          include: ping
+        readiness:
+          include: ping,mongo,diskSpace
   health:
     redis:
       enabled: true
