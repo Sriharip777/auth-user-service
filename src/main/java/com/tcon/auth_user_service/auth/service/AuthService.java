@@ -1,17 +1,28 @@
 package com.tcon.auth_user_service.auth.service;
-import com.tcon.auth_user_service.auth.dto.*;
+
+import com.tcon.auth_user_service.auth.dto.LoginRequest;
+import com.tcon.auth_user_service.auth.dto.PasswordChangeRequest;
+import com.tcon.auth_user_service.auth.dto.PasswordResetRequest;
+import com.tcon.auth_user_service.auth.dto.RegisterRequest;
+import com.tcon.auth_user_service.auth.dto.TokenResponse;
+import com.tcon.auth_user_service.auth.dto.TwoFactorRequest;
+import com.tcon.auth_user_service.auth.dto.UserProfileResponse;
 import com.tcon.auth_user_service.auth.security.JwtTokenProvider;
 import com.tcon.auth_user_service.auth.security.TwoFactorAuthService;
 import com.tcon.auth_user_service.event.UserEventPublisher;
+import com.tcon.auth_user_service.user.entity.AdminProfile;
+import com.tcon.auth_user_service.user.entity.TeacherProfile;
 import com.tcon.auth_user_service.user.entity.TeacherVerification;
 import com.tcon.auth_user_service.user.entity.User;
 import com.tcon.auth_user_service.user.entity.UserRole;
 import com.tcon.auth_user_service.user.entity.UserStatus;
-import com.tcon.auth_user_service.user.repository.*;
+import com.tcon.auth_user_service.user.repository.AdminRepository;
+import com.tcon.auth_user_service.user.repository.AdminRoleRepository;
+import com.tcon.auth_user_service.user.repository.TeacherRepository;
+import com.tcon.auth_user_service.user.repository.TeacherVerificationRepository;
+import com.tcon.auth_user_service.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import com.tcon.auth_user_service.user.entity.AdminProfile;
-import com.tcon.auth_user_service.user.repository.AdminRepository;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -27,6 +38,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
+
     private final AdminRepository adminRepository;
     private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;
@@ -34,10 +46,10 @@ public class AuthService {
     private final TwoFactorAuthService twoFactorAuthService;
     private final PasswordResetService passwordResetService;
     private final UserEventPublisher userEventPublisher;
-    private final AdminRoleRepository adminRoleRepository;  // ✅ NEW
+    private final AdminRoleRepository adminRoleRepository;
     private final TeacherRepository teacherRepository;
     private final TeacherVerificationRepository teacherVerificationRepository;
-    // ✅ ADMIN ROLES - Now includes new financial roles
+
     private static final List<String> ADMIN_ROLES = Arrays.asList(
             "ADMIN",
             "MODERATOR",
@@ -52,9 +64,6 @@ public class AuthService {
             "FINANCIAL_SUPPORT_ADMIN"
     );
 
-    /**
-     * Register user and immediately issue tokens
-     */
     @Transactional
     public TokenResponse register(RegisterRequest request) {
 
@@ -67,13 +76,9 @@ public class AuthService {
             throw new IllegalArgumentException("Phone number already in use");
         }
 
-        // ✅ Set status based on role
-        UserStatus initialStatus;
-        if (request.getRole() == UserRole.TEACHER) {
-            initialStatus = UserStatus.PENDING_VERIFICATION; // or whatever enum value you use
-        } else {
-            initialStatus = UserStatus.ACTIVE;
-        }
+        UserStatus initialStatus = request.getRole() == UserRole.TEACHER
+                ? UserStatus.PENDING_VERIFICATION
+                : UserStatus.ACTIVE;
 
         User user = User.builder()
                 .email(request.getEmail())
@@ -82,7 +87,7 @@ public class AuthService {
                 .lastName(request.getLastName())
                 .phoneNumber(request.getPhoneNumber())
                 .role(request.getRole())
-                .status(initialStatus)            // ✅ use initialStatus
+                .status(initialStatus)
                 .emailVerified(false)
                 .twoFactorEnabled(false)
                 .failedLoginAttempts(0)
@@ -95,23 +100,24 @@ public class AuthService {
         userEventPublisher.publishUserCreated(savedUser);
 
         if (request.getRole() == UserRole.TEACHER) {
-            TeacherVerification verification = TeacherVerification.builder()
-                    .teacherUserId(savedUser.getId())
-                    .status("PENDING")
-                    .documentUrls(List.of())
-                    .build();
+            teacherVerificationRepository.findByTeacherUserId(savedUser.getId())
+                    .orElseGet(() -> {
+                        TeacherVerification verification = TeacherVerification.builder()
+                                .teacherUserId(savedUser.getId())
+                                .status("PENDING")
+                                .documentUrls(List.of())
+                                .build();
 
-            teacherVerificationRepository.save(verification);
-            log.info("✅ TeacherVerification auto-created for: {}", savedUser.getId());
+                        TeacherVerification savedVerification = teacherVerificationRepository.save(verification);
+                        log.info("TeacherVerification auto-created for: {}", savedUser.getId());
+                        return savedVerification;
+                    });
         }
 
         log.info("User registered: {} ({})", savedUser.getEmail(), savedUser.getRole());
-
         return buildTokenResponse(savedUser);
-    }  // ✅ THIS CLOSING BRACE WAS MISSING — closes register()
-    /**
-     * Login user (2FA-aware)
-     */
+    }
+
     @Transactional
     public TokenResponse login(LoginRequest request) {
 
@@ -124,10 +130,8 @@ public class AuthService {
             throw new IllegalStateException("Account is suspended or inactive");
         }
 
-
         if (user.isAccountLocked()) {
-            throw new IllegalStateException(
-                    "Account locked until " + user.getLockedUntil());
+            throw new IllegalStateException("Account locked until " + user.getLockedUntil());
         }
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
@@ -136,14 +140,11 @@ public class AuthService {
             throw new BadCredentialsException("Invalid email or password");
         }
 
-        // 🔴 BLOCK REJECTED TEACHERS FROM LOGGING IN (ADDED LOGIC)
         if (user.getRole() == UserRole.TEACHER) {
-
             teacherRepository.findByUserId(user.getId())
                     .ifPresent(profile -> {
-                        if ("REJECTED".equals(profile.getVerificationStatus())) {
-                            throw new AccessDeniedException(
-                                    "Your teacher verification was rejected.");
+                        if ("REJECTED".equalsIgnoreCase(profile.getVerificationStatus())) {
+                            throw new AccessDeniedException("Your teacher verification was rejected.");
                         }
                     });
         }
@@ -154,7 +155,6 @@ public class AuthService {
 
         log.info("User logged in: {}", user.getEmail());
 
-        // 2FA required
         if (Boolean.TRUE.equals(user.getTwoFactorEnabled())) {
             twoFactorAuthService.generateAndSendCode(user);
             throw new IllegalStateException("TWO_FACTOR_REQUIRED");
@@ -163,9 +163,6 @@ public class AuthService {
         return buildTokenResponse(user);
     }
 
-    /**
-     * Verify 2FA and issue tokens
-     */
     @Transactional
     public TokenResponse verifyTwoFactor(TwoFactorRequest request) {
 
@@ -184,26 +181,16 @@ public class AuthService {
         return buildTokenResponse(user);
     }
 
-    /**
-     * Request password reset
-     */
     @Transactional
     public void requestPasswordReset(PasswordResetRequest request) {
         passwordResetService.createResetToken(request.getEmail());
     }
 
-    /**
-     * Reset password
-     */
     @Transactional
     public void resetPassword(PasswordChangeRequest request) {
-        passwordResetService.resetPassword(
-                request.getToken(), request.getNewPassword());
+        passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
     }
 
-    /**
-     * Refresh access token
-     */
     @Transactional
     public TokenResponse refreshToken(String refreshToken) {
 
@@ -215,14 +202,6 @@ public class AuthService {
         return buildTokenResponse(user);
     }
 
-    /* =========================================================
-       🔐 ADMIN REGISTRATION - UPDATED WITH DYNAMIC VALIDATION
-       ========================================================= */
-    /**
-     * Admin-only registration for administrative roles
-     * ✅ Now supports: ADMIN, MODERATOR, FINANCIAL_ADMIN, FINANCIAL_SUPPORT_ADMIN
-     * ✅ Validates against both hardcoded list AND dynamic admin_roles collection
-     */
     @Transactional
     public TokenResponse registerAdmin(RegisterRequest request) {
 
@@ -281,13 +260,10 @@ public class AuthService {
             return adminRepository.save(profile);
         });
 
-        log.info("✅ Admin user created: {} ({})", savedUser.getEmail(), savedUser.getRole());
-
+        log.info("Admin user created: {} ({})", savedUser.getEmail(), savedUser.getRole());
         return buildTokenResponse(savedUser);
     }
-    /**
-     * Shared token creation logic (SINGLE SOURCE OF TRUTH)
-     */
+
     private TokenResponse buildTokenResponse(User user) {
 
         String accessToken = jwtTokenProvider.generateAccessToken(

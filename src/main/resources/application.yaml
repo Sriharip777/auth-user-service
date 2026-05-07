@@ -10,7 +10,16 @@ spring:
       uri: mongodb+srv://educonnect:educonnect123@educonnect.sjmtr4c.mongodb.net/educonnect
       database: educonnect
       auto-index-creation: true
-
+# ADD THIS BLOCK FOR FEIGN CLIENT
+feign:
+  learning-management-service:
+    url: http://localhost:8084
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 10000
+        loggerLevel: BASIC
 eureka:
   client:
     service-url:

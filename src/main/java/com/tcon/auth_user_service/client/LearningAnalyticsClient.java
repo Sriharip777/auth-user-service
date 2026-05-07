@@ -1,6 +1,5 @@
 package com.tcon.auth_user_service.client;
 
-
 import com.tcon.auth_user_service.client.dto.MonthlyClassStatClientDto;
 import com.tcon.auth_user_service.client.dto.StudentBookingAnalyticsClientDto;
 import com.tcon.auth_user_service.client.dto.TeacherBookingAnalyticsClientDto;
@@ -11,7 +10,8 @@ import java.util.List;
 
 @FeignClient(
         name = "learning-management-service",
-        contextId = "learningAnalyticsClient"
+        contextId = "learningAnalyticsClient",
+        url = "${feign.learning-management-service.url:http://localhost:8084}"
 )
 public interface LearningAnalyticsClient {
 

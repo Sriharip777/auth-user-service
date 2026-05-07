@@ -1,4 +1,5 @@
 package com.tcon.auth_user_service.user.service;
+
 import com.tcon.auth_user_service.user.dto.TeacherVerificationDto;
 import com.tcon.auth_user_service.user.entity.TeacherVerification;
 import com.tcon.auth_user_service.user.entity.UserStatus;
@@ -41,7 +42,7 @@ public class TeacherVerificationService {
                         )
                 );
 
-        if (!"PENDING".equals(verification.getStatus())) {
+        if (!"PENDING".equalsIgnoreCase(verification.getStatus())) {
             throw new IllegalStateException("Verification already processed");
         }
 
@@ -109,7 +110,7 @@ public class TeacherVerificationService {
                         new IllegalArgumentException("Verification not found: " + verificationId)
                 );
 
-        if (!"PENDING".equals(verification.getStatus())) {
+        if (!"PENDING".equalsIgnoreCase(verification.getStatus())) {
             throw new IllegalStateException("Verification already processed");
         }
 
@@ -119,7 +120,6 @@ public class TeacherVerificationService {
 
         TeacherVerification saved = verificationRepository.save(verification);
 
-        // Sync profile -> VERIFIED
         teacherProfileRepository.findByUserId(verification.getTeacherUserId())
                 .ifPresent(profile -> {
                     profile.setVerificationStatus("VERIFIED");
@@ -128,7 +128,6 @@ public class TeacherVerificationService {
                             profile.getUserId());
                 });
 
-        // Activate user
         userRepository.findById(verification.getTeacherUserId()).ifPresent(user -> {
             user.setStatus(UserStatus.ACTIVE);
             userRepository.save(user);
@@ -156,7 +155,7 @@ public class TeacherVerificationService {
                         new IllegalArgumentException("Verification not found: " + verificationId)
                 );
 
-        if (!"PENDING".equals(verification.getStatus())) {
+        if (!"PENDING".equalsIgnoreCase(verification.getStatus())) {
             throw new IllegalStateException("Verification already processed");
         }
 
@@ -168,6 +167,13 @@ public class TeacherVerificationService {
         TeacherVerification saved = verificationRepository.save(verification);
 
         updateTeacherProfileStatus(verification.getTeacherUserId(), "REJECTED");
+
+        userRepository.findById(verification.getTeacherUserId()).ifPresent(user -> {
+            user.setStatus(UserStatus.SUSPENDED);
+            userRepository.save(user);
+            log.info("✅ Teacher {} User.status set to SUSPENDED after rejection",
+                    verification.getTeacherUserId());
+        });
 
         log.info("❌ Verification rejected for teacher: {}", verification.getTeacherUserId());
         return safeMapToDto(saved);

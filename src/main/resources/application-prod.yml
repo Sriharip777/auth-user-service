@@ -5,6 +5,15 @@ server:
 spring:
   application:
     name: auth-user-service
+feign:
+  learning-management-service:
+    url: ${LEARNING_SERVICE_URL}
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 10000
+        loggerLevel: BASIC
 
   output:
     ansi:
