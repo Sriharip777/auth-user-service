@@ -1,5 +1,6 @@
 package com.tcon.auth_user_service.user.service;
 
+import com.tcon.auth_user_service.user.client.LearningManagementClient;
 import com.tcon.auth_user_service.user.dto.AssignedStudentOptionDto;
 import com.tcon.auth_user_service.user.dto.StudentDto;
 import com.tcon.auth_user_service.user.entity.ParentProfile;
@@ -13,10 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Random;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -27,8 +25,9 @@ public class StudentService {
     private final StudentRepository studentRepository;
     private final ParentRepository parentRepository;
     private final UserRepository userRepository;
-
+    private final LearningManagementClient learningManagementClient;
     private static final Random RANDOM = new Random();
+
 
     // ────────────────────────────────────────────────────────────
     // Build 4-letter prefix from first name
@@ -265,28 +264,39 @@ public class StudentService {
         return dto;
     }
 
+
     @Transactional(readOnly = true)
     public List<AssignedStudentOptionDto> getAssignedStudentsForTeacher(String teacherId) {
         if (teacherId == null || teacherId.isBlank()) {
             throw new IllegalArgumentException("Teacher ID must not be null or blank");
         }
 
-        log.info("🔍 Fetching assigned students for teacherId: {}", teacherId);
+        String normalizedTeacherId = teacherId.trim();
 
-        List<StudentProfile> studentProfiles = studentRepository.findByParentId(teacherId);
+        log.info("🔍 Fetching assigned students for teacherId: {}", normalizedTeacherId);
 
-        if (studentProfiles == null || studentProfiles.isEmpty()) {
-            log.info("ℹ️ No assigned students found for teacherId: {}", teacherId);
+        List<String> studentUserIds = learningManagementClient.getStudentsForTeacher(normalizedTeacherId);
+
+        if (studentUserIds == null || studentUserIds.isEmpty()) {
+            log.info("ℹ️ No assigned students found for teacherId: {}", normalizedTeacherId);
             return List.of();
         }
 
-        return studentProfiles.stream()
+        return studentUserIds.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(id -> !id.isBlank())
+                .distinct()
+                .map(studentRepository::findByUserId)
+                .flatMap(Optional::stream)
                 .map(this::mapToAssignedStudentOptionDto)
                 .toList();
     }
-
     private AssignedStudentOptionDto mapToAssignedStudentOptionDto(StudentProfile profile) {
-        User user = userRepository.findById(profile.getUserId()).orElse(null);
+        String userId = profile.getUserId();
+        User user = (userId != null && !userId.isBlank())
+                ? userRepository.findById(userId.trim()).orElse(null)
+                : null;
 
         String firstName = user != null && user.getFirstName() != null
                 ? user.getFirstName().trim()
@@ -299,7 +309,7 @@ public class StudentService {
         String fullName = (firstName + " " + lastName).trim();
 
         return AssignedStudentOptionDto.builder()
-                .userId(profile.getUserId())
+                .userId(userId)
                 .studentId(profile.getStudentId())
                 .name(fullName.isBlank() ? "Student" : fullName)
                 .email(user != null ? user.getEmail() : null)
